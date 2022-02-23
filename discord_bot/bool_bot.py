@@ -74,7 +74,6 @@ def create_embed(item, day):
     dictionary = json.loads(item)['stage_schedules']
     stage_names = list(dictionary)
     for stage in stage_names:
-        print(dictionary[stage])
         artist_string = ''
         for artist in dictionary[stage]['artists']:
             artist_string += artist + '\n'
