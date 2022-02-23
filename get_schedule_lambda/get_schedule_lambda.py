@@ -20,15 +20,3 @@ def lambda_handler(event, context):
         print(e)
         return_messages.append("An error occured")
     return return_messages
-
-
-#TESTING
-def test():
-    response = lambda_handler({
-        "schedule_url": "https://clashfinder.com/m/beanherenow/?user=ToriM"
-    }, '')
-    for item in response:
-        print(item)
-
-
-test()

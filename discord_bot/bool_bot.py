@@ -73,14 +73,13 @@ async def bot_get_albums(message):
 
 def create_embed(item, day):
     embed = discord.Embed(title=day, color=discord.Color.blue())
-    dictionary = json.loads(item)['stage_schedules']
+    dictionary = item['stage_schedules']
     stage_names = list(dictionary)
     for stage in stage_names:
-        artist_string = ''
+        show_string = ''
         for artist in dictionary[stage]['shows']:
-            artist_string += artist + '\n'
-        embed.add_field(name=stage, value=artist_string,
-                        inline=True)
+            show_string += artist + '\n'
+        embed.add_field(name=stage, value=show_string, inline=True)
     return embed
 
 
@@ -99,7 +98,7 @@ async def get_schedule(message):
             day += ' Cont.'
         else:
             previous_day = day
-        await message.channel.send(embed=create_embed(item, day))
+        await message.channel.send(embed=create_embed(item, json_item))
 
 
 #start the bot
