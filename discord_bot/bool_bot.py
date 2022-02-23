@@ -39,6 +39,8 @@ async def on_ready():
 async def on_message(message):
     if message.content == 'bool_bot ping':
         await message.channel.send('PONG')
+    elif message.content == 'bool_bot bing':
+        await message.channel.send('BONG')
     elif message.content == 'bool_bot kill' and message.author.name == 'johnr9412':
         await message.channel.send('aignt... gonna kms')
         await client.logout()
