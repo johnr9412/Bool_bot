@@ -46,8 +46,7 @@ async def on_message(message):
         await client.logout()
     elif 'bool_bot playlist_albums' in message.content:
         await bot_get_albums(message)
-    elif ('https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content) \
-            and message.author.name == 'johnr9412':
+    elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
         await get_schedule(message)
 
 
