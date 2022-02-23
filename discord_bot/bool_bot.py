@@ -77,7 +77,7 @@ def create_embed(item, day):
     stage_names = list(dictionary)
     for stage in stage_names:
         artist_string = ''
-        for artist in dictionary[stage]['artists']:
+        for artist in dictionary[stage]['shows']:
             artist_string += artist + '\n'
         embed.add_field(name=stage, value=artist_string,
                         inline=True)
