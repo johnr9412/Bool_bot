@@ -11,9 +11,9 @@ def get_json(url):
     return data['locations']
 
 
-def get_schedule_ids(json_object):
+def get_usr_schedule_ids(usr_sched_url):
     list_of_ids = []
-    for stage in json_object:
+    for stage in get_json(usr_sched_url):
         for show in stage['events']:
             list_of_ids.append(show['short'])
 
@@ -31,14 +31,12 @@ def add_days_to_schedule(df):
                           dtstart=initial_time,
                           until=max_time):
         day_end = dt + timedelta(days=1)
-        df.loc[
-            (df['start'] >= dt) & (df['start'] <= day_end)
-            , 'day'] = day
+        df.loc[(df['start'] >= dt) & (df['start'] <= day_end), 'day'] = day
         day += 1
     return df
 
 
-def create_event_schedule_df(event_url, schedule_ids):
+def create_event_schedule_dataframe(event_url, schedule_ids):
     json_object = get_json(event_url)
     list_of_objects = []
     stage_count = 0
@@ -58,27 +56,26 @@ def create_event_schedule_df(event_url, schedule_ids):
                     'stage_priority': stage_count,
                     'attending': 1 if short in schedule_ids else 0
                 })
-    return pd.DataFrame.from_records([item for item in list_of_objects])\
-        .sort_values(['start', 'stage_priority'], ascending=[True, True])
+    return add_days_to_schedule(pd.DataFrame.from_records([item for item in list_of_objects])
+                                .sort_values(['start', 'stage_priority'], ascending=[True, True]))
 
 
-def make_artist_string(is_first_row, hour_start, hour_end, attending, artist):
+def create_show_string(is_first_row, hour_start, hour_end, attending, artist):
     if is_first_row:
-        artist_string = hour_start.strftime("%I") + '-' \
-                        + (hour_end + timedelta(minutes=60)).strftime("%I%p")
+        show_string = hour_start.strftime("%I") + '-' + (hour_end + timedelta(minutes=60)).strftime("%I%p")
     else:
-        artist_string = '\t'
-    artist_string += ' '
+        show_string = '\t'
+    show_string += ' '
     if attending:
-        artist_string += '**' + artist + '**'
+        show_string += '**' + artist + '**'
     else:
-        artist_string += artist
+        show_string += artist
 
-    return artist_string
+    return show_string
 
 
-def generate_string_list(sched_df):
-    return_list = []
+def convert_df_to_string_obj(sched_df):
+    list_of_string_objects = []
     first_set_datetime = sched_df['start'].min().to_pydatetime()
     last_set_datetime = sched_df['start'].max().to_pydatetime()
     for day in sched_df['day'].unique():
@@ -99,30 +96,30 @@ def generate_string_list(sched_df):
                     if len(artists_for_stage) > 0:
                         time_count = 0
                         for index, row in artists_for_stage.iterrows():
-                            artist_string = make_artist_string(time_count == 0, hour_start, hour_end,
-                                                               int(row['attending']) == 1, row['artist'])
+                            show_string = create_show_string(time_count == 0, hour_start, hour_end,
+                                                             int(row['attending']) == 1, row['artist'])
+                            schedule_obj.add_show(stage, show_string)
                             time_count += 1
-                            schedule_obj.add_artist(stage, artist_string)
                             counter += 1
                     else:
-                        artist_string = make_artist_string(True, hour_start, hour_end, False, '\t')
-                        schedule_obj.add_artist(stage, artist_string)
+                        show_string = create_show_string(True, hour_start, hour_end, False, '\t')
+                        schedule_obj.add_show(stage, show_string)
                         counter += 0.25
 
                 if counter >= line_limit:
-                    return_list.append(schedule_obj.toJSON())
+                    list_of_string_objects.append(schedule_obj.toJSON())
                     schedule_obj = Schedule(day_string)
                     counter = 0
-        return_list.append(schedule_obj.toJSON())
-    return return_list
+        list_of_string_objects.append(schedule_obj.toJSON())
+    return list_of_string_objects
 
 
 def get_event_schedule_for_user(event_name, user):
     event_url = 'https://clashfinder.com/data/event/' + event_name + '.json'
-    schedule_ids = []
     if user != '':
-        schedule_url = event_url + '?user=' + user
-        schedule_ids = get_schedule_ids(get_json(schedule_url))
-    event_schedule_df = create_event_schedule_df(event_url, schedule_ids)
-    event_schedule_df = add_days_to_schedule(event_schedule_df)
-    return generate_string_list(event_schedule_df)
+        usr_schedule_url = event_url + '?user=' + user
+        usr_schedule_ids = get_usr_schedule_ids(usr_schedule_url)
+    else:
+        usr_schedule_ids = []
+    event_schedule_df = create_event_schedule_dataframe(event_url, usr_schedule_ids)
+    return convert_df_to_string_obj(event_schedule_df)
