@@ -42,6 +42,8 @@ async def on_message(message):
             await message.channel.send('PONG')
         elif 'bing' in message.content:
             await message.channel.send('BONG')
+        elif 'ding' in message.content:
+            await message.channel.send('DONG')
         elif 'kill' in message.content and message.author.name == 'johnr9412':
             await message.channel.send('aignt... gonna kms')
             await client.logout()
