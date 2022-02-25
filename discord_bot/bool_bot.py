@@ -38,15 +38,10 @@ async def on_ready():
 @client.event
 async def on_message(message):
     if client.user.mentioned_in(message):
-        if 'ping' in message.content:
-            await message.channel.send('PONG')
-        elif 'bing' in message.content:
-            await message.channel.send('BONG')
-        elif 'ding' in message.content:
-            await message.channel.send('DONG')
-        elif 'kill' in message.content and message.author.name == 'johnr9412':
-            await message.channel.send('aignt... gonna kms')
-            await client.logout()
+        regex = r'\b(\w+ing)\b'
+        if re.search(regex, message.content):
+            word = re.findall(regex, message.content)[0]
+            await message.channel.send(word.replace("ing", "ong").upper())
         elif 'playlist_albums' in message.content:
             await bot_get_albums(message)
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
