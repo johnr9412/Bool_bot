@@ -37,15 +37,16 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.content == 'bool_bot ping':
-        await message.channel.send('PONG')
-    elif message.content == 'bool_bot bing':
-        await message.channel.send('BONG')
-    elif message.content == 'bool_bot kill' and message.author.name == 'johnr9412':
-        await message.channel.send('aignt... gonna kms')
-        await client.logout()
-    elif 'bool_bot playlist_albums' in message.content:
-        await bot_get_albums(message)
+    if client.user.mentioned_in(message):
+        if 'ping' in message.content:
+            await message.channel.send('PONG')
+        elif 'bing' in message.content:
+            await message.channel.send('BONG')
+        elif 'kill' in message.content and message.author.name == 'johnr9412':
+            await message.channel.send('aignt... gonna kms')
+            await client.logout()
+        elif 'playlist_albums' in message.content:
+            await bot_get_albums(message)
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
         await get_schedule(message)
 
