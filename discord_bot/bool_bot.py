@@ -40,9 +40,9 @@ async def on_message(message):
             await message.channel.send(word.replace("ing", "ong").upper())
         elif 'lock' in message_content:
             if '-lock' in message_content:
-                print('lock')
+                lock_server()
             elif '-unlock' in message_content:
-                print('unlock')
+                unlock_server()
         elif 'playlist_albums' in message_content:
             await bot_get_albums(message)
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
@@ -60,15 +60,15 @@ def call_bot_lambda(lambda_name, parameters):
     return response
 
 
-async def bot_get_albums(message):
-    print('getting albums')
-    response = call_bot_lambda("get_albums_lambda", {
-        "playlist_url": message.content.split("playlist_albums ")[1],
-        "spotify_tokens": [SPOTIFY_TOKEN1, SPOTIFY_TOKEN2]
-    })
-    for message_text in json.load(response['Payload']):
-        await message.channel.send(message_text)
-        print('message sent')
+#user defined functions
+def lock_server():
+    print('lock')
+    return True
+
+
+def unlock_server():
+    print('unlock')
+    return True
 
 
 def create_embed(item, day):
@@ -82,6 +82,18 @@ def create_embed(item, day):
         embed.add_field(name=stage, value=artist_string,
                         inline=True)
     return embed
+
+
+#async functions
+async def bot_get_albums(message):
+    print('getting albums')
+    response = call_bot_lambda("get_albums_lambda", {
+        "playlist_url": message.content.split("playlist_albums ")[1],
+        "spotify_tokens": [SPOTIFY_TOKEN1, SPOTIFY_TOKEN2]
+    })
+    for message_text in json.load(response['Payload']):
+        await message.channel.send(message_text)
+        print('message sent')
 
 
 async def get_schedule(message):
