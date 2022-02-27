@@ -8,16 +8,16 @@ import boto3
 import discord
 
 #setup stuff
-client = hvac.Client(
+vault_client = hvac.Client(
     url=os.environ['VAULT_URL'],
     token=os.environ['VAULT_TOKEN']
 )
 
-res = client.is_authenticated()
-DISCORD_TOKEN = client.secrets.kv.read_secret_version(path='discord_token')['data']['data']['key']
-SPOTIFY_TOKEN1 = client.secrets.kv.read_secret_version(path='spotify_token_1')['data']['data']['key']
-SPOTIFY_TOKEN2 = client.secrets.kv.read_secret_version(path='spotify_token_2')['data']['data']['key']
-TEST_GUILD = 'jrrobinson\'s nonsense server'
+res = vault_client.is_authenticated()
+DISCORD_TOKEN = vault_client.secrets.kv.read_secret_version(path='discord_token')['data']['data']['key']
+SPOTIFY_TOKEN1 = vault_client.secrets.kv.read_secret_version(path='spotify_token_1')['data']['data']['key']
+SPOTIFY_TOKEN2 = vault_client.secrets.kv.read_secret_version(path='spotify_token_2')['data']['data']['key']
+TEST_CHANNEL_ID = int(vault_client.secrets.kv.read_secret_version(path='test_channel_id')['data']['data']['key'])
 
 intents = discord.Intents.default()
 intents.members = True
@@ -27,12 +27,7 @@ client = discord.Client(intents=intents)
 #bot events
 @client.event
 async def on_ready():
-    #send message in Test
-    for guild_item in client.guilds:
-        if guild_item.name == TEST_GUILD:
-            for channel in guild_item.channels:
-                if channel.name == 'testing':
-                    await channel.send('Updated. Am a brand new bot')
+    await client.get_channel(TEST_CHANNEL_ID).send('Updated. Am a brand new bot')
 
 
 @client.event
@@ -43,6 +38,11 @@ async def on_message(message):
         if re.search(regex, message_content):
             word = re.findall(regex, message_content)[0]
             await message.channel.send(word.replace("ing", "ong").upper())
+        elif 'lock' in message_content:
+            if '-lock' in message_content:
+                print('lock')
+            elif '-unlock' in message_content:
+                print('unlock')
         elif 'playlist_albums' in message_content:
             await bot_get_albums(message)
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
