@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import json
 import re
 import os
@@ -18,6 +17,7 @@ DISCORD_TOKEN = vault_client.secrets.kv.read_secret_version(path='discord_token'
 SPOTIFY_TOKEN1 = vault_client.secrets.kv.read_secret_version(path='spotify_token_1')['data']['data']['key']
 SPOTIFY_TOKEN2 = vault_client.secrets.kv.read_secret_version(path='spotify_token_2')['data']['data']['key']
 TEST_CHANNEL_ID = int(vault_client.secrets.kv.read_secret_version(path='test_channel_id')['data']['data']['key'])
+LOCK_GUILD_ID = int(vault_client.secrets.kv.read_secret_version(path='lock_guild_id')['data']['data']['key'])
 
 intents = discord.Intents.default()
 intents.members = True
@@ -40,9 +40,11 @@ async def on_message(message):
             await message.channel.send(word.replace("ing", "ong").upper())
         elif 'lock' in message_content:
             if '-lock' in message_content:
-                lock_server()
+                await lock_server()
+                await message.channel.send('Roles removed')
             elif '-unlock' in message_content:
-                unlock_server()
+                await unlock_server()
+                await message.channel.send('Roles replaced')
         elif 'playlist_albums' in message_content:
             await bot_get_albums(message)
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
@@ -57,18 +59,70 @@ def call_bot_lambda(lambda_name, parameters):
         InvocationType='RequestResponse',
         Payload=json.dumps(parameters)
     )
-    return response
+    return json.load(response['Payload'])
 
 
-#user defined functions
-def lock_server():
-    print('lock')
-    return True
+async def take_role_actions(member_records, is_lock):
+    guild = client.get_guild(LOCK_GUILD_ID)
+    server_roles = guild.roles
+    server_members = guild.members
+    for member_id in member_records:
+        member = next(filter(lambda s_member: s_member.id == int(member_id), server_members), None)
+        member_roles = list(filter(lambda s_role: s_role.id in member_records[member_id], server_roles))
+        if member is not None and len(member_roles) > 0:
+            try:
+                if is_lock:
+                    await member.remove_roles(*member_roles)
+                else:
+                    await member.add_roles(*member_roles)
+            except Exception as e:
+                print(e)
+            print(member.name)
 
 
-def unlock_server():
-    print('unlock')
-    return True
+async def lock_server():
+    print('locking')
+    guild = client.get_guild(LOCK_GUILD_ID)
+    permissions_dict = {}
+    for member in guild.members:
+        roles = []
+        for role in member.roles:
+            roles.append(role.id)
+        if len(roles) > 0:
+            permissions_dict[str(member.id)] = roles
+    response = call_bot_lambda("discord_permissions_lambda", {
+        "command": 'save',
+        "roles": permissions_dict
+    })
+    if response:
+        print('Permissions saved')
+        await take_role_actions(permissions_dict, is_lock=True)
+        print('Permissions removed')
+
+
+async def unlock_server():
+    print('unlocking')
+    guild = client.get_guild(LOCK_GUILD_ID)
+    server_members = guild.members
+    server_roles = guild.roles
+    dynamo_data = call_bot_lambda("discord_permissions_lambda", {
+        "command": 'read'
+    })
+    member_records = dynamo_data['roles']
+    for member_id in member_records:
+        member = next(filter(lambda s_member: s_member.id == int(member_id), server_members), None)
+        member_roles = list(filter(lambda s_role: s_role.id in member_records[member_id], server_roles))
+        if member is not None and len(member_roles) > 0:
+            print(member.name)
+            for item in member_roles:
+                print('--' + item.name)
+    await take_role_actions(data['roles'], is_lock=False)
+    print('Permissions updated')
+    response = call_bot_lambda("discord_permissions_lambda", {
+        "command": 'delete'
+    })
+    if response:
+        print('Permissions deleted')
 
 
 def create_embed(item, day):
@@ -91,7 +145,7 @@ async def bot_get_albums(message):
         "playlist_url": message.content.split("playlist_albums ")[1],
         "spotify_tokens": [SPOTIFY_TOKEN1, SPOTIFY_TOKEN2]
     })
-    for message_text in json.load(response['Payload']):
+    for message_text in response:
         await message.channel.send(message_text)
         print('message sent')
 
@@ -103,7 +157,7 @@ async def get_schedule(message):
         "schedule_url": url
     })
     previous_day = ''
-    for item in json.load(response['Payload']):
+    for item in response:
         json_item = json.loads(item)
         day = json_item['day']
         if previous_day == day:
