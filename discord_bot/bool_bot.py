@@ -38,7 +38,7 @@ async def on_message(message):
         if re.search(regex, message_content):
             word = re.findall(regex, message_content)[0]
             await message.channel.send(word.replace("ing", "ong").upper())
-        elif 'lock' in message_content:
+        elif 'lock' in message_content and author_authorized_for_server_actions(message.author.roles):
             if '-lock' in message_content:
                 await lock_server()
                 await message.channel.send('Roles removed')
@@ -60,6 +60,13 @@ def call_bot_lambda(lambda_name, parameters):
         Payload=json.dumps(parameters)
     )
     return json.load(response['Payload'])
+
+
+def author_authorized_for_server_actions(roles):
+    for role in [y.name for y in roles]:
+        if 'Moderator' in role or 'Owner' in role:
+            return True
+    return False
 
 
 async def take_role_actions(member_records, is_lock):
@@ -96,27 +103,17 @@ async def lock_server():
     })
     if response:
         print('Permissions saved')
-        await take_role_actions(permissions_dict, is_lock=True)
+        #await take_role_actions(permissions_dict, is_lock=True)
         print('Permissions removed')
 
 
 async def unlock_server():
     print('unlocking')
-    guild = client.get_guild(LOCK_GUILD_ID)
-    server_members = guild.members
-    server_roles = guild.roles
     dynamo_data = call_bot_lambda("discord_permissions_lambda", {
         "command": 'read'
     })
     member_records = dynamo_data['roles']
-    for member_id in member_records:
-        member = next(filter(lambda s_member: s_member.id == int(member_id), server_members), None)
-        member_roles = list(filter(lambda s_role: s_role.id in member_records[member_id], server_roles))
-        if member is not None and len(member_roles) > 0:
-            print(member.name)
-            for item in member_roles:
-                print('--' + item.name)
-    await take_role_actions(data['roles'], is_lock=False)
+    #await take_role_actions(member_records, is_lock=False)
     print('Permissions updated')
     response = call_bot_lambda("discord_permissions_lambda", {
         "command": 'delete'
