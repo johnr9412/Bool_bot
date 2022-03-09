@@ -38,7 +38,7 @@ async def on_message(message):
         if re.search(regex, message_content):
             word = re.findall(regex, message_content)[0]
             await message.channel.send(word.replace("ing", "ong").upper())
-        elif 'lock' in message_content and author_authorized_for_server_actions(message.author.roles):
+        elif 'lock' in message_content and author_authorized_for_server_actions(message.author):
             if '-lock' in message_content:
                 await lock_server()
                 await message.channel.send('Roles removed')
@@ -62,8 +62,10 @@ def call_bot_lambda(lambda_name, parameters):
     return json.load(response['Payload'])
 
 
-def author_authorized_for_server_actions(roles):
-    for role in [y.name for y in roles]:
+def author_authorized_for_server_actions(author):
+    if author.name == 'johnr9412':
+        return True
+    for role in [y.name for y in author.roles]:
         if 'Moderator' in role or 'Owner' in role:
             return True
     return False
