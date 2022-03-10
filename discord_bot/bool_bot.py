@@ -27,7 +27,8 @@ client = discord.Client(intents=intents)
 #bot events
 @client.event
 async def on_ready():
-    await client.get_channel(TEST_CHANNEL_ID).send('Updated. Am a brand new bot')
+    #await client.get_channel(TEST_CHANNEL_ID).send('Updated. Am a brand new bot')
+    await lock_server()
 
 
 @client.event
@@ -53,11 +54,12 @@ async def on_message(message):
 
 #user defined functions
 def call_bot_lambda(lambda_name, parameters):
+    print(json.dumps({"body": parameters}))
     lambda_client = boto3.client('lambda', region_name='us-east-2')
     response = lambda_client.invoke(
         FunctionName=lambda_name,
         InvocationType='RequestResponse',
-        Payload=json.dumps(parameters)
+        Payload=json.dumps({"body": parameters})
     )
     return json.load(response['Payload'])
 
@@ -99,6 +101,7 @@ async def lock_server():
             roles.append(role.id)
         if len(roles) > 0:
             permissions_dict[str(member.id)] = roles
+    print(permissions_dict)
     response = call_bot_lambda("discord_permissions_lambda", {
         "command": 'save',
         "roles": permissions_dict

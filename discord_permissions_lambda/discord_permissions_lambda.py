@@ -1,5 +1,6 @@
 import boto3
 import time
+import json
 
 PERMISSIONS_TABLE = boto3.resource('dynamodb').Table('discord_permissions')
 
@@ -46,12 +47,16 @@ def delete_permissions_records():
 
 
 def lambda_handler(event, context):
-    command = event['command']
-    if command == 'read':
-        return read_permissions()
-    elif command == 'save':
-        return save_permissions(event['roles'])
-    elif command == 'delete':
-        return delete_permissions_records()
-    else:
+    try:
+        command = json.loads(event['body'])['command']
+        if command == 'read':
+            return read_permissions()
+        elif command == 'save':
+            return save_permissions(json.loads(event['body'])['roles'])
+        elif command == 'delete':
+            return delete_permissions_records()
+        else:
+            return False
+    except Exception as e:
+        print(e)
         return False

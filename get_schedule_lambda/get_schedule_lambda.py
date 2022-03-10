@@ -1,3 +1,4 @@
+import json
 from methods import get_schedule
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
@@ -6,7 +7,7 @@ from urllib.parse import parse_qs
 def lambda_handler(event, context):
     return_messages = []
     try:
-        url_string = event['schedule_url']
+        url_string = json.loads(event['body'])['schedule_url']
         if '/m/' in url_string:
             event_name = url_string.split('/m/')[1].split('/?')[0]
         else:
