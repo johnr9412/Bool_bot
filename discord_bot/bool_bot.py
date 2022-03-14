@@ -4,6 +4,7 @@ import re
 import os
 import hvac
 import boto3
+import requests
 import discord
 
 #setup stuff
@@ -18,6 +19,7 @@ SPOTIFY_TOKEN1 = vault_client.secrets.kv.read_secret_version(path='spotify_token
 SPOTIFY_TOKEN2 = vault_client.secrets.kv.read_secret_version(path='spotify_token_2')['data']['data']['key']
 TEST_CHANNEL_ID = int(vault_client.secrets.kv.read_secret_version(path='test_channel_id')['data']['data']['key'])
 LOCK_GUILD_ID = int(vault_client.secrets.kv.read_secret_version(path='lock_guild_id')['data']['data']['key'])
+API_KEY = vault_client.secrets.kv.read_secret_version(path='api_key')['data']['data']['key']
 
 intents = discord.Intents.default()
 intents.members = True
@@ -54,12 +56,11 @@ async def on_message(message):
 
 #user defined functions
 def call_bot_lambda(lambda_name, parameters):
-    print(json.dumps({"body": parameters}))
     lambda_client = boto3.client('lambda', region_name='us-east-2')
     response = lambda_client.invoke(
         FunctionName=lambda_name,
         InvocationType='RequestResponse',
-        Payload=json.dumps({"body": parameters})
+        Payload=json.dumps({'body': parameters})
     )
     return json.load(response['Payload'])
 
@@ -79,7 +80,7 @@ async def take_role_actions(member_records, is_lock):
     server_members = guild.members
     for member_id in member_records:
         member = next(filter(lambda s_member: s_member.id == int(member_id), server_members), None)
-        member_roles = list(filter(lambda s_role: s_role.id in member_records[member_id], server_roles))
+        member_roles = list(filter(lambda s_role: str(s_role.id) in member_records[member_id], server_roles))
         if member is not None and len(member_roles) > 0:
             try:
                 if is_lock:
@@ -98,15 +99,22 @@ async def lock_server():
     for member in guild.members:
         roles = []
         for role in member.roles:
-            roles.append(role.id)
+            roles.append(str(role.id))
         if len(roles) > 0:
             permissions_dict[str(member.id)] = roles
-    print(permissions_dict)
-    response = call_bot_lambda("discord_permissions_lambda", {
+
+    url = 'https://qtf8017hoe.execute-api.us-east-2.amazonaws.com/test/permissions'
+    myobj = json.dumps({
         "command": 'save',
         "roles": permissions_dict
     })
-    if response:
+    headers = {'x-api-key': API_KEY}
+
+    x = requests.post(url, data=myobj, headers=headers)
+
+    print(x)
+
+    if True:
         print('Permissions saved')
         #await take_role_actions(permissions_dict, is_lock=True)
         print('Permissions removed')

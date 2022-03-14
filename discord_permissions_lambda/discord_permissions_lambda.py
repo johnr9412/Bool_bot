@@ -5,14 +5,14 @@ import json
 PERMISSIONS_TABLE = boto3.resource('dynamodb').Table('discord_permissions')
 
 IGNORE_ROLES = [
-    644996941729497088,
-    691124748746489938,
-    645007257750470697,
-    645008107411472405,
-    946505159255683095,
-    940749928743964674,
-    645022873706299470,
-    946492281828040754
+    '644996941729497088',
+    '691124748746489938',
+    '645007257750470697',
+    '645008107411472405',
+    '946505159255683095',
+    '940749928743964674',
+    '645022873706299470',
+    '946492281828040754'
 ]
 
 
@@ -47,16 +47,13 @@ def delete_permissions_records():
 
 
 def lambda_handler(event, context):
-    try:
-        command = json.loads(event['body'])['command']
-        if command == 'read':
-            return read_permissions()
-        elif command == 'save':
-            return save_permissions(json.loads(event['body'])['roles'])
-        elif command == 'delete':
-            return delete_permissions_records()
-        else:
-            return False
-    except Exception as e:
-        print(e)
+    print(event)
+    command = json.loads(event['body'])['command']
+    if command == 'read':
+        return {"statusCode": 200, "body": json.dumps(read_permissions())}
+    elif command == 'save':
+        return {"statusCode": 200, "body": save_permissions(json.loads(event['body'])['roles'])}
+    elif command == 'delete':
+        return {"statusCode": 200, "body": delete_permissions_records()}
+    else:
         return False
