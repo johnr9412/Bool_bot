@@ -46,14 +46,33 @@ def delete_permissions_records():
         return False
 
 
+def create_response(status_code, body=None):
+    if body:
+        return {
+            "statusCode": status_code,
+            "body": body
+        }
+    else:
+        return {
+            "statusCode": status_code
+        }
+
+
 def lambda_handler(event, context):
-    print(event)
     command = json.loads(event['body'])['command']
     if command == 'read':
-        return {"statusCode": 200, "body": json.dumps(read_permissions())}
+        response = create_response(200, json.dumps(read_permissions()))
     elif command == 'save':
-        return {"statusCode": 200, "body": save_permissions(json.loads(event['body'])['roles'])}
+        if save_permissions(json.loads(event['body'])['roles']):
+            response = create_response(200)
+        else:
+            response = create_response(500)
     elif command == 'delete':
-        return {"statusCode": 200, "body": delete_permissions_records()}
+        if delete_permissions_records():
+            response = create_response(200)
+        else:
+            response = create_response(500)
     else:
-        return False
+        response = create_response(500)
+
+    return response

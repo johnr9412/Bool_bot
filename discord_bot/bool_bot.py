@@ -30,7 +30,7 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     #await client.get_channel(TEST_CHANNEL_ID).send('Updated. Am a brand new bot')
-    await lock_server()
+    await unlock_server()
 
 
 @client.event
@@ -63,6 +63,13 @@ def call_bot_lambda(lambda_name, parameters):
         Payload=json.dumps({'body': parameters})
     )
     return json.load(response['Payload'])
+
+
+def call_new_lambda(lambda_name, param_obj):
+    url = 'https://qtf8017hoe.execute-api.us-east-2.amazonaws.com/test/permissions'
+    myobj = json.dumps(param_obj)
+    headers = {'x-api-key': API_KEY}
+    return requests.post(url, data=myobj, headers=headers)
 
 
 def author_authorized_for_server_actions(author):
@@ -103,18 +110,11 @@ async def lock_server():
         if len(roles) > 0:
             permissions_dict[str(member.id)] = roles
 
-    url = 'https://qtf8017hoe.execute-api.us-east-2.amazonaws.com/test/permissions'
-    myobj = json.dumps({
+    response = call_new_lambda('temp', {
         "command": 'save',
         "roles": permissions_dict
     })
-    headers = {'x-api-key': API_KEY}
-
-    x = requests.post(url, data=myobj, headers=headers)
-
-    print(x)
-
-    if True:
+    if response.status_code == 200:
         print('Permissions saved')
         #await take_role_actions(permissions_dict, is_lock=True)
         print('Permissions removed')
@@ -122,17 +122,18 @@ async def lock_server():
 
 async def unlock_server():
     print('unlocking')
-    dynamo_data = call_bot_lambda("discord_permissions_lambda", {
+    response = call_new_lambda('temp', {
         "command": 'read'
     })
-    member_records = dynamo_data['roles']
-    #await take_role_actions(member_records, is_lock=False)
-    print('Permissions updated')
-    response = call_bot_lambda("discord_permissions_lambda", {
-        "command": 'delete'
-    })
-    if response:
-        print('Permissions deleted')
+    if response.status_code == 200:
+        member_records = json.loads(response.content)['roles']
+        #await take_role_actions(member_records, is_lock=False)
+        print('Permissions updated')
+        response = call_new_lambda('temp', {
+            "command": 'delete'
+        })
+        if response.status_code == 200:
+            print('Permissions deleted')
 
 
 def create_embed(item, day):
