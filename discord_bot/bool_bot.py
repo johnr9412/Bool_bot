@@ -16,8 +16,7 @@ client = discord.Client(intents=intents)
 #bot events
 @client.event
 async def on_ready():
-    #await client.get_channel(TEST_CHANNEL_ID).send('Updated. Am a brand new bot')
-    await lock_server()
+    await client.get_channel(SECRETS_OBJECT['TEST_CHANNEL_ID']).send('Updated. Am a brand new bot')
 
 
 @client.event
@@ -107,7 +106,7 @@ async def lock_server():
     })
     if response.status_code == 200:
         print('Permissions saved')
-        #await take_role_actions(permissions_dict, is_lock=True)
+        await take_role_actions(permissions_dict, is_lock=True)
         print('Permissions removed')
 
 
@@ -118,7 +117,7 @@ async def unlock_server():
     })
     if response.status_code == 200:
         member_records = json.loads(response.content)['roles']
-        #await take_role_actions(member_records, is_lock=False)
+        await take_role_actions(member_records, is_lock=False)
         print('Permissions updated')
         response = call_bot_lambdas('PERMISSIONS_API', {
             "command": 'delete'
