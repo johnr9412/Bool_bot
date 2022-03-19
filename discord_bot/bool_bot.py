@@ -1,27 +1,12 @@
 #!/usr/bin/env python3
 import json
 import re
-import os
-import hvac
-import boto3
 import requests
 import discord
+from lib import secrets_manager
 
 #setup stuff
-vault_client = hvac.Client(
-    url=os.environ['VAULT_URL'],
-    token=os.environ['VAULT_TOKEN']
-)
-
-res = vault_client.is_authenticated()
-DISCORD_TOKEN = vault_client.secrets.kv.read_secret_version(path='discord_token')['data']['data']['key']
-SPOTIFY_TOKEN1 = vault_client.secrets.kv.read_secret_version(path='spotify_token_1')['data']['data']['key']
-SPOTIFY_TOKEN2 = vault_client.secrets.kv.read_secret_version(path='spotify_token_2')['data']['data']['key']
-TEST_CHANNEL_ID = int(vault_client.secrets.kv.read_secret_version(path='test_channel_id')['data']['data']['key'])
-LOCK_GUILD_ID = int(vault_client.secrets.kv.read_secret_version(path='lock_guild_id')['data']['data']['key'])
-PERMISSIONS_API_KEY = vault_client.secrets.kv.read_secret_version(path='permissions_api_key')['data']['data']['key']
-ALBUM_API_KEY = vault_client.secrets.kv.read_secret_version(path='album_api_key')['data']['data']['key']
-SCHEDULE_API_KEY = vault_client.secrets.kv.read_secret_version(path='schedule_api_key')['data']['data']['key']
+SECRETS_OBJECT = secrets_manager.get_secrets_obj()
 
 intents = discord.Intents.default()
 intents.members = True
@@ -57,10 +42,11 @@ async def on_message(message):
 
 
 #user defined functions
-def call_bot_lambdas(lambda_name, param_obj):
-    url = 'https://83odmhhpre.execute-api.us-east-2.amazonaws.com/default/discord_permissions_lambda'
-    headers = {'x-api-key': PERMISSIONS_API_KEY}
-    return requests.post(url, data=json.dumps(param_obj), headers=headers)
+def call_bot_lambdas(lambda_key_base, param_obj):
+    url_key_selector = lambda_key_base + '_URL'
+    api_key_selector = lambda_key_base + '_KEY'
+    headers = {'x-api-key': SECRETS_OBJECT[api_key_selector]}
+    return requests.post(SECRETS_OBJECT[url_key_selector], data=json.dumps(param_obj), headers=headers)
 
 
 def author_authorized_for_server_actions(author):
@@ -87,7 +73,7 @@ def create_embed(item, day):
 
 #async functions
 async def take_role_actions(member_records, is_lock):
-    guild = client.get_guild(LOCK_GUILD_ID)
+    guild = client.get_guild(SECRETS_OBJECT['LOCK_GUILD_ID'])
     server_roles = guild.roles
     server_members = guild.members
     for member_id in member_records:
@@ -106,7 +92,7 @@ async def take_role_actions(member_records, is_lock):
 
 async def lock_server():
     print('locking')
-    guild = client.get_guild(LOCK_GUILD_ID)
+    guild = client.get_guild(SECRETS_OBJECT['LOCK_GUILD_ID'])
     permissions_dict = {}
     for member in guild.members:
         roles = []
@@ -115,7 +101,7 @@ async def lock_server():
         if len(roles) > 0:
             permissions_dict[str(member.id)] = roles
 
-    response = call_bot_lambdas('temp', {
+    response = call_bot_lambdas('PERMISSIONS_API', {
         "command": 'save',
         "roles": permissions_dict
     })
@@ -127,14 +113,14 @@ async def lock_server():
 
 async def unlock_server():
     print('unlocking')
-    response = call_bot_lambdas('temp', {
+    response = call_bot_lambdas('PERMISSIONS_API', {
         "command": 'read'
     })
     if response.status_code == 200:
         member_records = json.loads(response.content)['roles']
         #await take_role_actions(member_records, is_lock=False)
         print('Permissions updated')
-        response = call_bot_lambdas('temp', {
+        response = call_bot_lambdas('PERMISSIONS_API', {
             "command": 'delete'
         })
         if response.status_code == 200:
@@ -143,9 +129,9 @@ async def unlock_server():
 
 async def bot_get_albums(message):
     print('getting albums')
-    response = call_bot_lambdas('temp', {
+    response = call_bot_lambdas('ALBUM_API', {
         "playlist_url": message.content.split("playlist_albums ")[1],
-        "spotify_tokens": [SPOTIFY_TOKEN1, SPOTIFY_TOKEN2]
+        "spotify_tokens": [SECRETS_OBJECT['SPOTIFY_TOKEN1'], SECRETS_OBJECT['SPOTIFY_TOKEN2']]
     })
     if response.status_code == 200:
         for message_text in json.loads(response.content):
@@ -157,7 +143,7 @@ async def bot_get_albums(message):
 async def get_schedule(message):
     print('getting schedule')
     url = re.search("(?P<url>https?://[^\s]+)", message.content).group("url")
-    response = call_bot_lambdas('temp', {
+    response = call_bot_lambdas('SCHEDULE_API', {
         "schedule_url": url
     })
     if response.status_code == 200:
@@ -176,4 +162,4 @@ async def get_schedule(message):
 
 
 #start the bot
-client.run(DISCORD_TOKEN)
+client.run(SECRETS_OBJECT['DISCORD_TOKEN'])
