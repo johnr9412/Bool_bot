@@ -19,7 +19,8 @@ SPOTIFY_TOKEN1 = vault_client.secrets.kv.read_secret_version(path='spotify_token
 SPOTIFY_TOKEN2 = vault_client.secrets.kv.read_secret_version(path='spotify_token_2')['data']['data']['key']
 TEST_CHANNEL_ID = int(vault_client.secrets.kv.read_secret_version(path='test_channel_id')['data']['data']['key'])
 LOCK_GUILD_ID = int(vault_client.secrets.kv.read_secret_version(path='lock_guild_id')['data']['data']['key'])
-API_KEY = vault_client.secrets.kv.read_secret_version(path='api_key')['data']['data']['key']
+PERMISSIONS_API_KEY = vault_client.secrets.kv.read_secret_version(path='permissions_api_key')['data']['data']['key']
+ALBUM_API_KEY = vault_client.secrets.kv.read_secret_version(path='album_api_key')['data']['data']['key']
 
 intents = discord.Intents.default()
 intents.members = True
@@ -30,7 +31,7 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     #await client.get_channel(TEST_CHANNEL_ID).send('Updated. Am a brand new bot')
-    await unlock_server()
+    await test('https://open.spotify.com/playlist/2K4I7PxViRH2XVl3eqiZbN?si=40ba4111edfd4ef0')
 
 
 @client.event
@@ -66,10 +67,9 @@ def call_bot_lambda(lambda_name, parameters):
 
 
 def call_new_lambda(lambda_name, param_obj):
-    url = 'https://qtf8017hoe.execute-api.us-east-2.amazonaws.com/test/permissions'
-    myobj = json.dumps(param_obj)
-    headers = {'x-api-key': API_KEY}
-    return requests.post(url, data=myobj, headers=headers)
+    url = 'https://r54yt5jv97.execute-api.us-east-2.amazonaws.com/default/get_albums_lambda'
+    headers = {'x-api-key': ALBUM_API_KEY}
+    return requests.post(url, data=json.dumps(param_obj), headers=headers)
 
 
 def author_authorized_for_server_actions(author):
@@ -150,15 +150,31 @@ def create_embed(item, day):
 
 
 #async functions
+async def test(url):
+    print('getting albums')
+    response = call_new_lambda('temp', {
+        "playlist_url": url,
+        "spotify_tokens": [SPOTIFY_TOKEN1, SPOTIFY_TOKEN2]
+    })
+    if response.status_code == 200:
+        print('Permissions deleted')
+        for message_text in json.loads(response.content):
+            print(message_text)
+    else:
+        print(response.content)
+
+
 async def bot_get_albums(message):
     print('getting albums')
-    response = call_bot_lambda("get_albums_lambda", {
+    response = call_new_lambda('temp', {
         "playlist_url": message.content.split("playlist_albums ")[1],
         "spotify_tokens": [SPOTIFY_TOKEN1, SPOTIFY_TOKEN2]
     })
-    for message_text in response:
-        await message.channel.send(message_text)
-        print('message sent')
+    if response.status_code == 200:
+        for message_text in json.loads(response.content):
+            await message.channel.send(message_text)
+    else:
+        await message.channel.send(response.content)
 
 
 async def get_schedule(message):

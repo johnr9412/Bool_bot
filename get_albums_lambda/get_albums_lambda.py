@@ -2,10 +2,19 @@ import json
 from methods import get_albums
 
 
+def create_response(status_code, body):
+    response = {
+        "statusCode": status_code,
+        "body": json.dumps(body)
+    }
+    return response
+
+
 def lambda_handler(event, context):
-    return_messages = []
     try:
+        return_messages = []
         event_body = json.loads(event['body'])
+        print(event_body['playlist_url'])
         albums = get_albums.get_albums_from_playlist(event_body['playlist_url'], event_body['spotify_tokens'])
         message_builder = ''
         counter = 0
@@ -22,8 +31,7 @@ def lambda_handler(event, context):
             else:
                 message_content = message_builder + albums[i]
                 return_messages.append(message_content)
+        return create_response(200, return_messages)
     except Exception as e:
         print(e)
-        return_messages.append('borked. maybe the playlist link isn\'t right?')
-
-    return return_messages
+        return create_response(500, 'borked. maybe the playlist link isn\'t right?')
