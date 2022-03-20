@@ -20,16 +20,10 @@ def get_secrets_obj():
             path='test_channel_id')['data']['data']['key']),
         "LOCK_GUILD_ID": int(vault_client.secrets.kv.read_secret_version(
             path='lock_guild_id')['data']['data']['key']),
-        "PERMISSIONS_API_URL": vault_client.secrets.kv.read_secret_version(
-            path='permissions_api_url')['data']['data']['key'],
         "PERMISSIONS_API_KEY": vault_client.secrets.kv.read_secret_version(
             path='permissions_api_key')['data']['data']['key'],
-        "ALBUM_API_URL": vault_client.secrets.kv.read_secret_version(
-            path='album_api_url')['data']['data']['key'],
         "ALBUM_API_KEY": vault_client.secrets.kv.read_secret_version(
             path='album_api_key')['data']['data']['key'],
-        "SCHEDULE_API_URL": vault_client.secrets.kv.read_secret_version(
-            path='schedule_api_url')['data']['data']['key'],
         "SCHEDULE_API_KEY": vault_client.secrets.kv.read_secret_version(
             path='schedule_api_key')['data']['data']['key']
     }

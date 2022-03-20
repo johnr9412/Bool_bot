@@ -3,10 +3,12 @@ import json
 import re
 import requests
 import discord
-from lib import secrets_manager
+from lib import secrets_manager, api_manager
+
 
 #setup stuff
 SECRETS_OBJECT = secrets_manager.get_secrets_obj()
+API_URL_OBJECT = api_manager.get_api_url_obj()
 
 intents = discord.Intents.default()
 intents.members = True
@@ -41,11 +43,9 @@ async def on_message(message):
 
 
 #user defined functions
-def call_bot_lambdas(lambda_key_base, param_obj):
-    url_key_selector = lambda_key_base + '_URL'
-    api_key_selector = lambda_key_base + '_KEY'
-    headers = {'x-api-key': SECRETS_OBJECT[api_key_selector]}
-    return requests.post(SECRETS_OBJECT[url_key_selector], data=json.dumps(param_obj), headers=headers)
+def call_bot_lambdas(api_url, api_key, param_obj):
+    headers = {'x-api-key': api_key}
+    return requests.post(api_url, data=json.dumps(param_obj), headers=headers)
 
 
 def author_authorized_for_server_actions(author):
@@ -100,9 +100,10 @@ async def lock_server():
         if len(roles) > 0:
             permissions_dict[str(member.id)] = roles
 
-    response = call_bot_lambdas('PERMISSIONS_API', {
-        "command": 'save',
-        "roles": permissions_dict
+    response = call_bot_lambdas(
+        API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
+            "command": 'save',
+            "roles": permissions_dict
     })
     if response.status_code == 200:
         print('Permissions saved')
@@ -112,15 +113,17 @@ async def lock_server():
 
 async def unlock_server():
     print('unlocking')
-    response = call_bot_lambdas('PERMISSIONS_API', {
-        "command": 'read'
+    response = call_bot_lambdas(
+        API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
+            "command": 'read'
     })
     if response.status_code == 200:
         member_records = json.loads(response.content)['roles']
         await take_role_actions(member_records, is_lock=False)
         print('Permissions updated')
-        response = call_bot_lambdas('PERMISSIONS_API', {
-            "command": 'delete'
+        response = call_bot_lambdas(
+            API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
+                "command": 'delete'
         })
         if response.status_code == 200:
             print('Permissions deleted')
@@ -128,9 +131,10 @@ async def unlock_server():
 
 async def bot_get_albums(message):
     print('getting albums')
-    response = call_bot_lambdas('ALBUM_API', {
-        "playlist_url": message.content.split("playlist_albums ")[1],
-        "spotify_tokens": [SECRETS_OBJECT['SPOTIFY_TOKEN1'], SECRETS_OBJECT['SPOTIFY_TOKEN2']]
+    response = call_bot_lambdas(
+        API_URL_OBJECT['ALBUMS_API_URL'], SECRETS_OBJECT['ALBUM_API_KEY'], {
+            "playlist_url": message.content.split("playlist_albums ")[1],
+            "spotify_tokens": [SECRETS_OBJECT['SPOTIFY_TOKEN1'], SECRETS_OBJECT['SPOTIFY_TOKEN2']]
     })
     if response.status_code == 200:
         for message_text in json.loads(response.content):
@@ -142,8 +146,9 @@ async def bot_get_albums(message):
 async def get_schedule(message):
     print('getting schedule')
     url = re.search("(?P<url>https?://[^\s]+)", message.content).group("url")
-    response = call_bot_lambdas('SCHEDULE_API', {
-        "schedule_url": url
+    response = call_bot_lambdas(
+        API_URL_OBJECT['SCHEDULE_API_URL'], SECRETS_OBJECT['SCHEDULE_API_KEY'], {
+            "schedule_url": url
     })
     if response.status_code == 200:
         previous_day = ''
