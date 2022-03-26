@@ -8,7 +8,9 @@ def get_secrets_obj():
         token=os.environ['VAULT_TOKEN']
     )
 
-    res = vault_client.is_authenticated()
+    # required check to start the vault connection
+    vault_client.is_authenticated()
+
     return {
         "DISCORD_TOKEN": vault_client.secrets.kv.read_secret_version(
             path='discord_token')['data']['data']['key'],

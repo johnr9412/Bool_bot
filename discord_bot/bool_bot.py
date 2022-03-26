@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import json
 import re
-import requests
 import discord
-from lib import secrets_manager, api_manager
+from lib import secrets_manager, api_manager, support_methods
 
 
 #setup stuff
@@ -29,7 +28,7 @@ async def on_message(message):
         if re.search(regex, message_content):
             word = re.findall(regex, message_content)[0]
             await message.channel.send(word.replace("ing", "ong").upper())
-        elif 'lock' in message_content and author_authorized_for_server_actions(message.author):
+        elif 'lock' in message_content and support_methods.author_authorized_for_server_actions(message.author):
             if '-lock' in message_content:
                 await lock_server()
                 await message.channel.send('Roles removed')
@@ -40,34 +39,6 @@ async def on_message(message):
             await bot_get_albums(message)
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
         await get_schedule(message)
-
-
-#user defined functions
-def call_bot_lambdas(api_url, api_key, param_obj):
-    headers = {'x-api-key': api_key}
-    return requests.post(api_url, data=json.dumps(param_obj), headers=headers)
-
-
-def author_authorized_for_server_actions(author):
-    if author.name == 'johnr9412':
-        return True
-    for role in [y.name for y in author.roles]:
-        if 'Moderator' in role or 'Owner' in role:
-            return True
-    return False
-
-
-def create_embed(item, day):
-    embed = discord.Embed(title=day, color=discord.Color.blue())
-    dictionary = json.loads(item)['stage_schedules']
-    stage_names = list(dictionary)
-    for stage in stage_names:
-        artist_string = ''
-        for artist in dictionary[stage]['shows']:
-            artist_string += artist + '\n'
-        embed.add_field(name=stage, value=artist_string,
-                        inline=True)
-    return embed
 
 
 #async functions
@@ -100,11 +71,11 @@ async def lock_server():
         if len(roles) > 0:
             permissions_dict[str(member.id)] = roles
 
-    response = call_bot_lambdas(
+    response = support_methods.call_bot_lambdas(
         API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
             "command": 'save',
             "roles": permissions_dict
-    })
+        })
     if response.status_code == 200:
         print('Permissions saved')
         await take_role_actions(permissions_dict, is_lock=True)
@@ -113,29 +84,29 @@ async def lock_server():
 
 async def unlock_server():
     print('unlocking')
-    response = call_bot_lambdas(
+    response = support_methods.call_bot_lambdas(
         API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
             "command": 'read'
-    })
+        })
     if response.status_code == 200:
         member_records = json.loads(response.content)['roles']
         await take_role_actions(member_records, is_lock=False)
         print('Permissions updated')
-        response = call_bot_lambdas(
+        response = support_methods.call_bot_lambdas(
             API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
                 "command": 'delete'
-        })
+            })
         if response.status_code == 200:
             print('Permissions deleted')
 
 
 async def bot_get_albums(message):
     print('getting albums')
-    response = call_bot_lambdas(
+    response = support_methods.call_bot_lambdas(
         API_URL_OBJECT['ALBUMS_API_URL'], SECRETS_OBJECT['ALBUM_API_KEY'], {
             "playlist_url": message.content.split("playlist_albums ")[1],
             "spotify_tokens": [SECRETS_OBJECT['SPOTIFY_TOKEN1'], SECRETS_OBJECT['SPOTIFY_TOKEN2']]
-    })
+        })
     if response.status_code == 200:
         for message_text in json.loads(response.content):
             await message.channel.send(message_text)
@@ -146,10 +117,10 @@ async def bot_get_albums(message):
 async def get_schedule(message):
     print('getting schedule')
     url = re.search("(?P<url>https?://[^\s]+)", message.content).group("url")
-    response = call_bot_lambdas(
+    response = support_methods.call_bot_lambdas(
         API_URL_OBJECT['SCHEDULE_API_URL'], SECRETS_OBJECT['SCHEDULE_API_KEY'], {
             "schedule_url": url
-    })
+        })
     if response.status_code == 200:
         previous_day = ''
         for item in json.loads(response.content):
@@ -160,7 +131,7 @@ async def get_schedule(message):
                 day += ' Cont.'
             else:
                 previous_day = day
-            await message.channel.send(embed=create_embed(item, day))
+            await message.channel.send(embed=support_methods.create_embed(item, day))
     else:
         await message.channel.send('Something went wrong')
 
