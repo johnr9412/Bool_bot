@@ -46,12 +46,15 @@ async def on_message(message):
 
 #async functions
 async def get_steps(message):
-    step_dict = step_scrape.get_steps(SECRETS_OBJECT['STEPS_USERNAME'], SECRETS_OBJECT['STEPS_PASSWORD'])
-    message_text = ''
-    for item in step_dict:
-        message_text += item + ': ' + str(step_dict[item]) + '\n'
-    if message_text:
-        await message.channel.send(message_text)
+    try:
+        step_dict = step_scrape.get_steps(SECRETS_OBJECT['STEPS_USERNAME'], SECRETS_OBJECT['STEPS_PASSWORD'])
+        if len(step_dict) > 0:
+            await message.channel.send(embed=support_methods.create_step_embed('Steps', step_dict))
+        else:
+            await message.channel.send('No step metrics found')
+    except Exception as e:
+        print(e)
+        await message.channel.send('borked. something fucked')
 
 
 async def take_role_actions(member_records, is_lock):
@@ -143,7 +146,7 @@ async def get_schedule(message):
                 day += ' Cont.'
             else:
                 previous_day = day
-            await message.channel.send(embed=support_methods.create_embed(item, day))
+            await message.channel.send(embed=support_methods.create_schedule_embed(item, day))
     else:
         await message.channel.send('Something went wrong')
 

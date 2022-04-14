@@ -17,7 +17,7 @@ def author_authorized_for_server_actions(author):
     return False
 
 
-def create_embed(item, day):
+def create_schedule_embed(item, day):
     embed = embeds.Embed(title=day, color=colour.Color.blue())
     dictionary = json.loads(item)['stage_schedules']
     stage_names = list(dictionary)
@@ -27,4 +27,15 @@ def create_embed(item, day):
             artist_string += artist + '\n'
         embed.add_field(name=stage, value=artist_string,
                         inline=True)
+    return embed
+
+
+def create_step_embed(caption, steps_dict):
+    embed = embeds.Embed(title=caption, color=colour.Color.blue())
+    embed.add_field(name='Date Stamp', value='idk some shit', inline=False)
+    message_text = ''
+    for item in steps_dict:
+        message_text += (item + ': ' + str(steps_dict[item]) + '\n')
+    embed.add_field(name='Step Counts', value=message_text, inline=False)
+    embed.add_field(name='Something motivational', value='maybe idk', inline=False)
     return embed
