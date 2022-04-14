@@ -9,6 +9,7 @@ def start_driver(headless):
         options = Options()
         options.add_argument("headless")
         options.add_argument("disable-gpu")
+        options.BinaryLocation = "/usr/bin/chromium-browser"
         return webdriver.Chrome(options=options)
     else:
         return webdriver.Chrome()
