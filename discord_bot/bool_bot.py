@@ -2,7 +2,7 @@
 import json
 import re
 import discord
-from lib import secrets_manager, api_manager, support_methods
+from lib import secrets_manager, api_manager, support_methods, step_scrape
 
 
 #setup stuff
@@ -37,11 +37,23 @@ async def on_message(message):
                 await message.channel.send('Roles replaced')
         elif 'playlist_albums' in message_content:
             await bot_get_albums(message)
+        elif 'get steps' in message_content:
+            await message.channel.send('Fetching steps... this may take some time')
+            await get_steps(message)
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
         await get_schedule(message)
 
 
 #async functions
+async def get_steps(message):
+    step_dict = step_scrape.get_steps(SECRETS_OBJECT['STEPS_USERNAME'], SECRETS_OBJECT['STEPS_PASSWORD'])
+    message_text = ''
+    for item in step_dict:
+        message_text += item + ': ' + str(step_dict[item]) + '\n'
+    if message_text:
+        await message.channel.send(message_text)
+
+
 async def take_role_actions(member_records, is_lock):
     guild = client.get_guild(SECRETS_OBJECT['LOCK_GUILD_ID'])
     server_roles = guild.roles
