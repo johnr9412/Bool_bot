@@ -32,10 +32,10 @@ def create_schedule_embed(item, day):
 
 def create_step_embed(caption, steps_dict):
     embed = embeds.Embed(title=caption, color=colour.Color.blue())
-    embed.add_field(name='Date Stamp', value='idk some shit', inline=False)
+    embed.add_field(name='Date Stamp', value='4/13/22', inline=False)
     message_text = ''
     for item in steps_dict:
         message_text += (item + ': ' + str(steps_dict[item]) + '\n')
     embed.add_field(name='Step Counts', value=message_text, inline=False)
-    embed.add_field(name='Something motivational', value='maybe idk', inline=False)
+    embed.add_field(name='Something motivational', value='Today is the day that yall will kill it and here is more shit', inline=False)
     return embed
