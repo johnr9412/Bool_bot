@@ -1,6 +1,7 @@
 import requests
 import json
 from datetime import datetime
+from pytz import timezone
 from discord import embeds, colour
 
 
@@ -33,7 +34,7 @@ def create_schedule_embed(item, day):
 
 def create_step_embed(caption, steps_dict):
     embed = embeds.Embed(title=caption, color=colour.Color.blue())
-    embed.add_field(name='Date Stamp', value=datetime.today().strftime('%m-%d-%Y'), inline=False)
+    embed.add_field(name='Date Stamp', value=datetime.now(timezone('EST')).strftime('%m-%d-%Y'), inline=False)
     message_text = ''
     for item in steps_dict:
         message_text += (item + ': ' + str(steps_dict[item]) + '\n')
