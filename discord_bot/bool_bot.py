@@ -2,7 +2,7 @@
 import json
 import re
 import discord
-from lib import secrets_manager, api_manager, support_methods, step_scrape
+from lib import secrets_manager, api_manager, support_methods
 
 
 #setup stuff
@@ -47,9 +47,13 @@ async def on_message(message):
 #async functions
 async def get_steps(message):
     try:
-        step_dict = step_scrape.get_steps(SECRETS_OBJECT['STEPS_USERNAME'], SECRETS_OBJECT['STEPS_PASSWORD'])
-        if len(step_dict) > 0:
-            await message.channel.send(embed=support_methods.create_step_embed('Steps', step_dict))
+        response = support_methods.call_bot_lambdas(
+            API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
+                "username": SECRETS_OBJECT['STEPS_USERNAME'],
+                "password": SECRETS_OBJECT['STEPS_PASSWORD']
+            })
+        if response.status_code == 200:
+            await message.channel.send(embed=support_methods.create_step_embed('Steps', json.loads(response.content)))
         else:
             await message.channel.send('No step metrics found')
     except Exception as e:
