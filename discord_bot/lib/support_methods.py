@@ -50,3 +50,28 @@ def save_step_object(step_obj):
     date_num = int(datetime.now().strftime("%Y%m%d"))
     ts = time.time()
     table.put_item(Item={'date': date_num, 'timestamp': str(ts), 'step_metrics': step_obj})
+
+
+def get_webscrape_steps(step_url, step_key, username, password):
+    try:
+        response = call_bot_lambdas(
+            step_url, step_key, {
+                "username": username,
+                "password": password
+            })
+        if response.status_code == 200:
+            steps_dict = json.loads(response.content)
+            save_step_object(steps_dict)
+            return {
+                "success": True,
+                "steps": steps_dict
+            }
+        else:
+            return {
+                "success": False
+            }
+    except Exception as e:
+        print(e)
+        return {
+            "success": False
+        }

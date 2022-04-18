@@ -46,23 +46,17 @@ async def on_message(message):
 
 #async functions
 async def get_steps(message):
-    try:
-        response = support_methods.call_bot_lambdas(
-            API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
-                "username": SECRETS_OBJECT['STEPS_USERNAME'],
-                "password": SECRETS_OBJECT['STEPS_PASSWORD']
-            })
-        if response.status_code == 200:
-            steps_dict = json.loads(response.content)
-            await message.channel.send(embed=support_methods.create_step_embed('Steps', steps_dict))
-            #save
-            support_methods.save_step_object(steps_dict)
+    return_obj = support_methods.get_webscrape_steps(API_URL_OBJECT['STEP_API_URL'],
+                                                     SECRETS_OBJECT['STEP_API_KEY'],
+                                                     SECRETS_OBJECT['STEPS_USERNAME'],
+                                                     SECRETS_OBJECT['STEPS_PASSWORD'])
+    if return_obj['success']:
+        steps = return_obj['steps']
+        if len(steps) > 0:
+            await message.channel.send(embed=support_methods.create_step_embed('Steps', steps))
         else:
-            print(response.status_code)
-            print(json.loads(response.content))
             await message.channel.send('No step metrics found')
-    except Exception as e:
-        print(e)
+    else:
         await message.channel.send('borked. something fucked')
 
 
