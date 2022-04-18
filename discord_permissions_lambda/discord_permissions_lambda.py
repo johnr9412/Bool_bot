@@ -47,7 +47,7 @@ def delete_permissions_records():
 
 
 def create_response(status_code, body=None):
-    response = { "statusCode": status_code }
+    response = {"statusCode": status_code }
     if body:
         response['body'] = body
     return response

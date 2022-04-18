@@ -1,5 +1,7 @@
 import requests
 import json
+import boto3
+import time
 from datetime import datetime
 from pytz import timezone
 from discord import embeds, colour
@@ -41,3 +43,10 @@ def create_step_embed(caption, steps_dict):
     embed.add_field(name='Step Counts', value=message_text, inline=False)
     embed.add_field(name='Something motivational', value='Today is the day that yall will kill it and here is more shit', inline=False)
     return embed
+
+
+def save_step_object(step_obj):
+    table = boto3.resource('dynamodb').Table('step_metrics')
+    date_num = int(datetime.now().strftime("%Y%m%d"))
+    ts = time.time()
+    table.put_item(Item={'date': date_num, 'timestamp': str(ts), 'step_metrics': step_obj})

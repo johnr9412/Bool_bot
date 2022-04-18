@@ -50,9 +50,9 @@ def navigate_to_friends(driver):
 def get_users_name(username):
     dynamodb = boto3.resource('dynamodb', region_name="us-east-2")
     username_obj = dynamodb.Table('stridekick_crosswalk').get_item(Key={"stridekick_name": username})
-    if username_obj:
+    try:
         return username_obj['Item']['person_name']
-    else:
+    except KeyError:
         return username
 
 
@@ -69,7 +69,7 @@ def get_step_data(driver):
 
 
 def get_steps(usrnm, pswd):
-    driver = start_driver(headless=False)
+    driver = start_driver(headless=True)
     login_to_site(driver, 'https://link.stridekick.com/', usrnm, pswd)
     time.sleep(1)
     navigate_to_friends(driver)
@@ -85,8 +85,3 @@ def lambda_handler(event, context=None):
         'statusCode': 200,
         'body': json.dumps(get_steps(body['username'], body['password']))
     }
-
-
-temp = get_steps('johnr9412@hotmail.com', 'Test123!')
-for item in temp:
-    print(item + ': ' + str(temp[item]))

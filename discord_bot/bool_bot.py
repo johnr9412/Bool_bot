@@ -53,8 +53,13 @@ async def get_steps(message):
                 "password": SECRETS_OBJECT['STEPS_PASSWORD']
             })
         if response.status_code == 200:
-            await message.channel.send(embed=support_methods.create_step_embed('Steps', json.loads(response.content)))
+            steps_dict = json.loads(response.content)
+            await message.channel.send(embed=support_methods.create_step_embed('Steps', steps_dict))
+            #save
+            support_methods.save_step_object(steps_dict)
         else:
+            print(response.status_code)
+            print(json.loads(response.content))
             await message.channel.send('No step metrics found')
     except Exception as e:
         print(e)
