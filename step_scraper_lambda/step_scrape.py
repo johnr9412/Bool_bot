@@ -1,7 +1,7 @@
 import time
 import json
+import boto3
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from tempfile import mkdtemp
 
@@ -47,19 +47,29 @@ def navigate_to_friends(driver):
     driver.get(friends_url)
 
 
+def get_users_name(username):
+    dynamodb = boto3.resource('dynamodb', region_name="us-east-2")
+    username_obj = dynamodb.Table('stridekick_crosswalk').get_item(Key={"stridekick_name": username})
+    if username_obj:
+        return username_obj['Item']['person_name']
+    else:
+        return username
+
+
 def get_step_data(driver):
     user_stats = {}
     tbody = driver.find_element(By.TAG_NAME, 'tbody')
     for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-iDtgLy jTKDPk', tbody.find_elements(By.XPATH, "*")):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
+        user_name = get_users_name(user_name)
         steps = int(div_objs[1].text.replace(",", ""))
         user_stats[user_name] = steps
     return user_stats
 
 
 def get_steps(usrnm, pswd):
-    driver = start_driver(headless=True)
+    driver = start_driver(headless=False)
     login_to_site(driver, 'https://link.stridekick.com/', usrnm, pswd)
     time.sleep(1)
     navigate_to_friends(driver)
@@ -75,3 +85,8 @@ def lambda_handler(event, context=None):
         'statusCode': 200,
         'body': json.dumps(get_steps(body['username'], body['password']))
     }
+
+
+temp = get_steps('johnr9412@hotmail.com', 'Test123!')
+for item in temp:
+    print(item + ': ' + str(temp[item]))
