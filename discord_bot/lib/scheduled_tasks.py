@@ -20,7 +20,7 @@ async def on_ready():
     hour = datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime('%H')
     if hour == '23':
         save_step_snapshot()
-    elif hour == '14':
+    elif hour == '7':
         await send_prev_day_summary()
     await client.close()
 
@@ -64,7 +64,7 @@ async def send_prev_day_summary():
             "Yesterday's Step Summary",
             date_value,
             step_metrics)
-        await client.get_channel(SECRETS_OBJECT['TEST_CHANNEL_ID']).send(embed=embed)
+        await client.get_channel(SECRETS_OBJECT['HEALTH_CHANNEL_ID']).send(embed=embed)
     else:
         print('borked')
 

@@ -20,6 +20,8 @@ def get_secrets_obj():
             path='spotify_token_2')['data']['data']['key'],
         "TEST_CHANNEL_ID": int(vault_client.secrets.kv.read_secret_version(
             path='test_channel_id')['data']['data']['key']),
+        "HEALTH_CHANNEL_ID": int(vault_client.secrets.kv.read_secret_version(
+            path='health_channel_id')['data']['data']['key']),
         "LOCK_GUILD_ID": int(vault_client.secrets.kv.read_secret_version(
             path='lock_guild_id')['data']['data']['key']),
         "PERMISSIONS_API_KEY": vault_client.secrets.kv.read_secret_version(
