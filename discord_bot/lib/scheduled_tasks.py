@@ -18,9 +18,9 @@ client = discord.Client()
 @client.event
 async def on_ready():
     hour = datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime('%H')
-    if hour == '13':
+    if hour == '23':
         save_step_snapshot()
-    elif hour == '7':
+    elif hour == '14':
         await send_prev_day_summary()
     await client.close()
 
