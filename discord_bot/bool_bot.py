@@ -2,6 +2,8 @@
 import json
 import re
 import discord
+from datetime import datetime
+from pytz import timezone
 from lib import secrets_manager, api_manager, support_methods
 
 
@@ -53,7 +55,10 @@ async def get_steps(message):
     if return_obj['success']:
         steps = return_obj['steps']
         if len(steps) > 0:
-            await message.channel.send(embed=support_methods.create_step_embed('Steps', steps))
+            await message.channel.send(embed=support_methods.create_step_embed(
+                'Steps',
+                datetime.now(timezone('EST')).strftime('%m-%d-%Y'),
+                steps))
         else:
             await message.channel.send('No step metrics found')
     else:

@@ -1,6 +1,9 @@
 import decimal
 import boto3
 import json
+import time
+import dateutil.tz
+from datetime import datetime
 from boto3.dynamodb.conditions import Key
 
 
@@ -28,9 +31,35 @@ def read_step_metrics(date_num):
     return sorted(data, key=lambda d: d['timestamp'], reverse=True)[0]
 
 
+def save_step_object(step_obj):
+    try:
+        table = boto3.resource('dynamodb').Table('step_metrics')
+        date_num = int(datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime("%Y%m%d"))
+        ts = time.time()
+        table.put_item(Item={'date': str(date_num), 'timestamp': str(ts), 'step_metrics': step_obj})
+        return True
+    except:
+        return False
+
+
+def create_response(status_code, body=None):
+    response = {"statusCode": status_code}
+    if body:
+        response['body'] = body
+    return response
+
+
 def lambda_handler(event, context):
-    date_num = json.loads(event['body'])['date_num']
-    return {
-        "statusCode": 200,
-        "body": json.dumps(read_step_metrics(date_num), cls=DecimalEncoder)
-    }
+    body = json.loads(event['body'])
+    command = body['command']
+    if command == 'read':
+        date_num = body['date_num']
+        response = create_response(200, json.dumps(read_step_metrics(date_num), cls=DecimalEncoder))
+    elif command == 'save':
+        if save_step_object(body['step_metrics']):
+            response = create_response(200)
+        else:
+            response = create_response(502)
+    else:
+        response = create_response(500)
+    return response

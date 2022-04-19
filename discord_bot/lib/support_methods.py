@@ -3,7 +3,6 @@ import json
 import boto3
 import time
 from datetime import datetime
-from pytz import timezone
 from discord import embeds, colour
 
 
@@ -34,22 +33,15 @@ def create_schedule_embed(item, day):
     return embed
 
 
-def create_step_embed(caption, steps_dict):
+def create_step_embed(caption, date_value, steps_dict):
     embed = embeds.Embed(title=caption, color=colour.Color.blue())
-    embed.add_field(name='Date Stamp', value=datetime.now(timezone('EST')).strftime('%m-%d-%Y'), inline=False)
+    embed.add_field(name='Date Stamp', value=date_value, inline=False)
     message_text = ''
     for item in steps_dict:
         message_text += (item + ': ' + "{:,}".format(steps_dict[item]) + '\n')
     embed.add_field(name='Step Counts', value=message_text, inline=False)
     embed.add_field(name='Something motivational', value='Today is the day that yall will kill it and here is more shit', inline=False)
     return embed
-
-
-def save_step_object(step_obj):
-    table = boto3.resource('dynamodb').Table('step_metrics')
-    date_num = int(datetime.now().strftime("%Y%m%d"))
-    ts = time.time()
-    table.put_item(Item={'date': str(date_num), 'timestamp': str(ts), 'step_metrics': step_obj})
 
 
 def get_webscrape_steps(step_url, step_key, username, password):
@@ -60,11 +52,9 @@ def get_webscrape_steps(step_url, step_key, username, password):
                 "password": password
             })
         if response.status_code == 200:
-            steps_dict = json.loads(response.content)
-            save_step_object(steps_dict)
             return {
                 "success": True,
-                "steps": steps_dict
+                "steps": json.loads(response.content)
             }
         else:
             return {
