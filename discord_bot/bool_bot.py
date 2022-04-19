@@ -2,8 +2,8 @@
 import json
 import re
 import discord
+import dateutil.tz
 from datetime import datetime
-from pytz import timezone
 from lib import secrets_manager, api_manager, support_methods
 
 
@@ -57,7 +57,7 @@ async def get_steps(message):
         if len(steps) > 0:
             await message.channel.send(embed=support_methods.create_step_embed(
                 'Steps',
-                datetime.now(timezone('EST')).strftime('%m-%d-%Y'),
+                datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime('%m-%d-%Y'),
                 steps))
         else:
             await message.channel.send('No step metrics found')
