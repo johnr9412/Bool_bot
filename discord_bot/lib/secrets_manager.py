@@ -28,6 +28,8 @@ def get_secrets_obj():
             path='album_api_key')['data']['data']['key'],
         "SCHEDULE_API_KEY": vault_client.secrets.kv.read_secret_version(
             path='schedule_api_key')['data']['data']['key'],
+        "STEP_SCRAPE_KEY": vault_client.secrets.kv.read_secret_version(
+            path='step_scrape_key')['data']['data']['key'],
         "STEP_API_KEY": vault_client.secrets.kv.read_secret_version(
             path='step_api_key')['data']['data']['key'],
         "STEPS_USERNAME": vault_client.secrets.kv.read_secret_version(

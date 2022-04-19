@@ -49,7 +49,7 @@ def save_step_object(step_obj):
     table = boto3.resource('dynamodb').Table('step_metrics')
     date_num = int(datetime.now().strftime("%Y%m%d"))
     ts = time.time()
-    table.put_item(Item={'date': date_num, 'timestamp': str(ts), 'step_metrics': step_obj})
+    table.put_item(Item={'date': str(date_num), 'timestamp': str(ts), 'step_metrics': step_obj})
 
 
 def get_webscrape_steps(step_url, step_key, username, password):

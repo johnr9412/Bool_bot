@@ -46,8 +46,8 @@ async def on_message(message):
 
 #async functions
 async def get_steps(message):
-    return_obj = support_methods.get_webscrape_steps(API_URL_OBJECT['STEP_API_URL'],
-                                                     SECRETS_OBJECT['STEP_API_KEY'],
+    return_obj = support_methods.get_webscrape_steps(API_URL_OBJECT['STEP_SCRAPE_URL'],
+                                                     SECRETS_OBJECT['STEP_SCRAPE_KEY'],
                                                      SECRETS_OBJECT['STEPS_USERNAME'],
                                                      SECRETS_OBJECT['STEPS_PASSWORD'])
     if return_obj['success']:
