@@ -1,8 +1,5 @@
 import requests
 import json
-import boto3
-import time
-from datetime import datetime
 from discord import embeds, colour
 
 
