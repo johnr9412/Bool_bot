@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 from dateutil import rrule
 from datetime import datetime, timedelta
-from methods.schedule_obj import Schedule, StageSchedule
+from schedule_obj import Schedule
 
 
 def get_json(url):
