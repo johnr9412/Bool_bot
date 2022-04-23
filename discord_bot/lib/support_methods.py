@@ -41,7 +41,7 @@ def create_step_embed(caption, date_value, steps_dict):
     return embed
 
 
-def get_webscrape_data(step_url, step_key, username, password, full_metrics):
+def get_webscrape_data(step_url, step_key, username, password, full_metrics=False):
     try:
         response = call_bot_lambdas(
             step_url, step_key, {

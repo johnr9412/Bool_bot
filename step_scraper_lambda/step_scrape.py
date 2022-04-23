@@ -99,7 +99,7 @@ def get_distance_data(driver):
 
 
 def scrape_fitness_metrics(usrnm, pswd, full_metrics=False):
-    driver = start_driver(headless=False)
+    driver = start_driver(headless=True)
     login_to_site(driver, 'https://link.stridekick.com/', usrnm, pswd)
     time.sleep(1)
     navigate_to_friends(driver)
@@ -125,8 +125,10 @@ def scrape_fitness_metrics(usrnm, pswd, full_metrics=False):
 def lambda_handler(event, context=None):
     body = json.loads(event['body'])
     if body['data_depth'] == 'full':
+        print('full')
         return_data = scrape_fitness_metrics(body['username'], body['password'], full_metrics=True)
     else:
+        print('steps')
         return_data = scrape_fitness_metrics(body['username'], body['password'])
     return {
         'statusCode': 200,
