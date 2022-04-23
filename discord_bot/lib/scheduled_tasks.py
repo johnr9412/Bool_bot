@@ -26,18 +26,18 @@ async def on_ready():
 
 
 def save_step_snapshot():
-    step_dict = support_methods.get_webscrape_steps(API_URL_OBJECT['STEP_SCRAPE_URL'],
-                                                    SECRETS_OBJECT['STEP_SCRAPE_KEY'],
-                                                    SECRETS_OBJECT['STEPS_USERNAME'],
-                                                    SECRETS_OBJECT['STEPS_PASSWORD'])
+    step_dict = support_methods.get_webscrape_data(API_URL_OBJECT['STEP_SCRAPE_URL'],
+                                                   SECRETS_OBJECT['STEP_SCRAPE_KEY'],
+                                                   SECRETS_OBJECT['STEPS_USERNAME'],
+                                                   SECRETS_OBJECT['STEPS_PASSWORD'])
     if step_dict['success']:
         response = support_methods.call_bot_lambdas(
             API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
                 "command": 'save',
-                "step_metrics": step_dict['steps']
+                "step_metrics": step_dict['metrics']
             })
         if response.status_code == 200:
-            print('Steps saved')
+            print('Metrics saved')
         else:
             print("borked")
 

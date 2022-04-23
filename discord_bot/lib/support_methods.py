@@ -41,17 +41,18 @@ def create_step_embed(caption, date_value, steps_dict):
     return embed
 
 
-def get_webscrape_steps(step_url, step_key, username, password):
+def get_webscrape_data(step_url, step_key, username, password, full_metrics):
     try:
         response = call_bot_lambdas(
             step_url, step_key, {
                 "username": username,
-                "password": password
+                "password": password,
+                "data_depth": 'full' if full_metrics else 'steps'
             })
         if response.status_code == 200:
             return {
                 "success": True,
-                "steps": json.loads(response.content)
+                "metrics": json.loads(response.content)
             }
         else:
             return {

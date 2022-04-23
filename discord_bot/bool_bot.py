@@ -48,12 +48,12 @@ async def on_message(message):
 
 #async functions
 async def get_steps(message):
-    return_obj = support_methods.get_webscrape_steps(API_URL_OBJECT['STEP_SCRAPE_URL'],
-                                                     SECRETS_OBJECT['STEP_SCRAPE_KEY'],
-                                                     SECRETS_OBJECT['STEPS_USERNAME'],
-                                                     SECRETS_OBJECT['STEPS_PASSWORD'])
+    return_obj = support_methods.get_webscrape_data(API_URL_OBJECT['STEP_SCRAPE_URL'],
+                                                    SECRETS_OBJECT['STEP_SCRAPE_KEY'],
+                                                    SECRETS_OBJECT['STEPS_USERNAME'],
+                                                    SECRETS_OBJECT['STEPS_PASSWORD'])
     if return_obj['success']:
-        steps = return_obj['steps']
+        steps = return_obj['metrics']
         if len(steps) > 0:
             await message.channel.send(embed=support_methods.create_step_embed(
                 'Steps',
