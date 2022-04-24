@@ -1,6 +1,7 @@
 import time
 import json
 import boto3
+import psutil
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from tempfile import mkdtemp
@@ -98,6 +99,16 @@ def get_distance_data(driver):
     return distance_stats
 
 
+def kill_chrome(driver):
+    chrome_procname = "chrome" # to clean up zombie Chrome browser
+    driver_procname = "chromedriver" # to clean up zombie ChromeDriver
+    for proc in psutil.process_iter():
+        # check whether the process name matches
+        if proc.name() == chrome_procname or proc.name() == driver_procname:
+            proc.kill()
+    driver.quit()
+
+
 def scrape_fitness_metrics(usrnm, pswd, full_metrics=False):
     driver = start_driver(headless=True)
     login_to_site(driver, 'https://link.stridekick.com/', usrnm, pswd)
@@ -109,33 +120,34 @@ def scrape_fitness_metrics(usrnm, pswd, full_metrics=False):
     if full_metrics:
         minute_metrics = get_minute_data(driver)
         distance_metrics = get_distance_data(driver)
-        driver.close()
         for username in step_metrics:
             fitness_metrics[username] = {
                 "steps": step_metrics[username],
                 "minutes": minute_metrics[username],
                 "distance": distance_metrics[username]
             }
+        kill_chrome(driver)
         return fitness_metrics
     else:
-        driver.close()
+        kill_chrome(driver)
         return step_metrics
 
 
 def lambda_handler(event, context=None):
-    body = json.loads(event['body'])
-    if body['data_depth'] == 'full':
-        print('full')
-        return_data = scrape_fitness_metrics(body['username'], body['password'], full_metrics=True)
-    else:
-        print('steps')
-        return_data = scrape_fitness_metrics(body['username'], body['password'])
-    return {
-        'statusCode': 200,
-        'body': json.dumps(return_data)
-    }
-
-
-temp = scrape_fitness_metrics('johnr9412@hotmail.com', 'Test123!', full_metrics=True)
-for item in temp:
-    print(temp[item])
+    try:
+        body = json.loads(event['body'])
+        if body['data_depth'] == 'full':
+            print('full')
+            return_data = scrape_fitness_metrics(body['username'], body['password'], full_metrics=True)
+        else:
+            print('steps')
+            return_data = scrape_fitness_metrics(body['username'], body['password'])
+        return {
+            'statusCode': 200,
+            'body': json.dumps(return_data)
+        }
+    except Exception as e:
+        print(e)
+        return {
+            'statusCode': 500
+        }
