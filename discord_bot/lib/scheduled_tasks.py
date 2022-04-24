@@ -26,10 +26,13 @@ async def on_ready():
 
 
 def save_step_snapshot():
+    print('getting metrics')
     step_dict = support_methods.get_webscrape_data(API_URL_OBJECT['STEP_SCRAPE_URL'],
                                                    SECRETS_OBJECT['STEP_SCRAPE_KEY'],
                                                    SECRETS_OBJECT['STEPS_USERNAME'],
-                                                   SECRETS_OBJECT['STEPS_PASSWORD'])
+                                                   SECRETS_OBJECT['STEPS_PASSWORD'],
+                                                   full_metrics=True)
+    print("metrics received")
     if step_dict['success']:
         response = support_methods.call_bot_lambdas(
             API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
@@ -39,13 +42,22 @@ def save_step_snapshot():
         if response.status_code == 200:
             print('Metrics saved')
         else:
-            print("borked")
+            print("borked " + str(response.status_code))
 
 
+#THIS METHOD IS ACTUAL AIDS BUT IT'S JUST HOW IT BE IDK
 def transform_step_obj(step_dict):
+    temp = {}
     for item in step_dict:
-        step_dict[item] = int(step_dict[item].replace(",", ""))
-    return {k: v for k, v in sorted(step_dict.items(), key=lambda x: x[1], reverse=True)}
+        step_num = int(step_dict[item]['steps'].replace(",", ""))
+        step_dict[item]['steps'] = step_num
+        temp[item] = step_num
+    temp = {k: v for k, v in sorted(temp.items(), key=lambda x: x[1], reverse=True)}
+
+    return_dict = {}
+    for user in temp:
+        return_dict[user] = step_dict[user]
+    return return_dict
 
 
 async def send_prev_day_summary():
@@ -60,13 +72,13 @@ async def send_prev_day_summary():
         body = json.loads(response.content)
         date_value = datetime.strptime(body['date'], '%Y%m%d').strftime('%m-%d-%Y')
         step_metrics = transform_step_obj(body['step_metrics'])
-        embed = support_methods.create_step_embed(
+        embed = support_methods.create_full_metrics_embed(
             "Yesterday's Step Summary",
             date_value,
             step_metrics)
         await client.get_channel(SECRETS_OBJECT['HEALTH_CHANNEL_ID']).send(embed=embed)
     else:
-        print('borked')
+        print('borked ' + str(response.status_code))
 
 
 client.run(SECRETS_OBJECT['DISCORD_TOKEN'])

@@ -33,12 +33,14 @@ def read_step_metrics(date_num):
 
 def save_step_object(step_obj):
     try:
+        step_obj = json.loads(json.dumps(step_obj), parse_float=decimal.Decimal)
         table = boto3.resource('dynamodb').Table('step_metrics')
         date_num = int(datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime("%Y%m%d"))
         ts = time.time()
         table.put_item(Item={'date': str(date_num), 'timestamp': str(ts), 'step_metrics': step_obj})
         return True
-    except:
+    except Exception as e:
+        print(e)
         return False
 
 
@@ -53,8 +55,12 @@ def lambda_handler(event, context):
     body = json.loads(event['body'])
     command = body['command']
     if command == 'read':
-        date_num = body['date_num']
-        response = create_response(200, json.dumps(read_step_metrics(date_num), cls=DecimalEncoder))
+        try:
+            date_num = body['date_num']
+            response = create_response(200, json.dumps(read_step_metrics(date_num), cls=DecimalEncoder))
+        except Exception as e:
+            print(e)
+            response = create_response(502)
     elif command == 'save':
         if save_step_object(body['step_metrics']):
             response = create_response(200)
