@@ -3,9 +3,17 @@ import json
 from discord import embeds, colour
 
 
-def call_bot_lambdas(api_url, api_key, param_obj):
+def call_bot_api_post_method(api_url, api_key, param_obj):
     headers = {'x-api-key': api_key}
     return requests.post(api_url, data=json.dumps(param_obj), headers=headers)
+
+
+def call_bot_api_get_method(api_url, api_key, param_obj=None):
+    headers = {'x-api-key': api_key}
+    if param_obj:
+        return requests.get(api_url, params=param_obj, headers=headers)
+    else:
+        return requests.get(api_url, headers=headers)
 
 
 def author_authorized_for_server_actions(author):
@@ -57,7 +65,7 @@ def create_full_metrics_embed(caption, date_value, steps_dict):
 
 def get_webscrape_data(step_url, step_key, username, password, full_metrics=False):
     try:
-        response = call_bot_lambdas(
+        response = call_bot_api_post_method(
             step_url, step_key, {
                 "username": username,
                 "password": password,

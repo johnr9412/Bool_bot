@@ -54,20 +54,23 @@ def create_response(status_code, body=None):
 
 
 def lambda_handler(event, context):
-    command = json.loads(event['body'])['command']
-    if command == 'read':
+    http_method = event['httpMethod']
+    if http_method == 'GET':
         response = create_response(200, json.dumps(read_permissions()))
-    elif command == 'save':
-        if save_permissions(json.loads(event['body'])['roles']):
-            response = create_response(200)
-        else:
-            response = create_response(500)
-    elif command == 'delete':
-        if delete_permissions_records():
-            response = create_response(200)
+    elif http_method == 'POST':
+        command = json.loads(event['body'])['command']
+        if command == 'save':
+            if save_permissions(json.loads(event['body'])['roles']):
+                response = create_response(200)
+            else:
+                response = create_response(500)
+        elif command == 'delete':
+            if delete_permissions_records():
+                response = create_response(200)
+            else:
+                response = create_response(500)
         else:
             response = create_response(500)
     else:
         response = create_response(500)
-
     return response

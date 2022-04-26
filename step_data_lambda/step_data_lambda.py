@@ -52,20 +52,25 @@ def create_response(status_code, body=None):
 
 
 def lambda_handler(event, context):
-    body = json.loads(event['body'])
-    command = body['command']
-    if command == 'read':
-        try:
-            date_num = body['date_num']
-            response = create_response(200, json.dumps(read_step_metrics(date_num), cls=DecimalEncoder))
-        except Exception as e:
-            print(e)
-            response = create_response(502)
-    elif command == 'save':
-        if save_step_object(body['step_metrics']):
-            response = create_response(200)
+    try:
+        http_method = event['httpMethod']
+        if http_method == 'POST':
+            body = json.loads(event['body'])
+            if save_step_object(body['step_metrics']):
+                response = create_response(200)
+            else:
+                response = create_response(502)
+            return response
+        elif http_method == 'GET':
+            try:
+                date_num = event['queryStringParameters']['date_num']
+                response = create_response(200, json.dumps(read_step_metrics(date_num), cls=DecimalEncoder))
+            except Exception as e:
+                print(e)
+                response = create_response(502)
+            return response
         else:
-            response = create_response(502)
-    else:
-        response = create_response(500)
-    return response
+            return create_response(500)
+    except Exception as e:
+        print(e)
+        return create_response(500)

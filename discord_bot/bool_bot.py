@@ -94,7 +94,7 @@ async def lock_server():
         if len(roles) > 0:
             permissions_dict[str(member.id)] = roles
 
-    response = support_methods.call_bot_lambdas(
+    response = support_methods.call_bot_api_post_method(
         API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
             "command": 'save',
             "roles": permissions_dict
@@ -107,15 +107,13 @@ async def lock_server():
 
 async def unlock_server():
     print('unlocking')
-    response = support_methods.call_bot_lambdas(
-        API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
-            "command": 'read'
-        })
+    response = support_methods.call_bot_api_get_method(
+        API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'])
     if response.status_code == 200:
         member_records = json.loads(response.content)['roles']
         await take_role_actions(member_records, is_lock=False)
         print('Permissions updated')
-        response = support_methods.call_bot_lambdas(
+        response = support_methods.call_bot_api_post_method(
             API_URL_OBJECT['PERMISSIONS_API_URL'], SECRETS_OBJECT['PERMISSIONS_API_KEY'], {
                 "command": 'delete'
             })
@@ -125,7 +123,7 @@ async def unlock_server():
 
 async def bot_get_albums(message):
     print('getting albums')
-    response = support_methods.call_bot_lambdas(
+    response = support_methods.call_bot_api_post_method(
         API_URL_OBJECT['ALBUMS_API_URL'], SECRETS_OBJECT['ALBUM_API_KEY'], {
             "playlist_url": message.content.split("playlist_albums ")[1],
             "spotify_tokens": [SECRETS_OBJECT['SPOTIFY_TOKEN1'], SECRETS_OBJECT['SPOTIFY_TOKEN2']]
@@ -140,7 +138,7 @@ async def bot_get_albums(message):
 async def get_schedule(message):
     print('getting schedule')
     url = re.search("(?P<url>https?://[^\s]+)", message.content).group("url")
-    response = support_methods.call_bot_lambdas(
+    response = support_methods.call_bot_api_post_method(
         API_URL_OBJECT['SCHEDULE_API_URL'], SECRETS_OBJECT['SCHEDULE_API_KEY'], {
             "schedule_url": url
         })

@@ -34,9 +34,8 @@ def save_step_snapshot():
                                                    full_metrics=True)
     print("metrics received")
     if step_dict['success']:
-        response = support_methods.call_bot_lambdas(
+        response = support_methods.call_bot_api_post_method(
             API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
-                "command": 'save',
                 "step_metrics": step_dict['metrics']
             })
         if response.status_code == 200:
@@ -63,9 +62,8 @@ def transform_step_obj(step_dict):
 async def send_prev_day_summary():
     date_obj = datetime.today() - timedelta(days=1)
     date_num = str(date_obj.strftime("%Y%m%d"))
-    response = support_methods.call_bot_lambdas(
-        API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
-            "command": "read",
+    response = support_methods.call_bot_api_get_method(
+        API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], param_obj={
             "date_num": date_num
         })
     if response.status_code == 200:
