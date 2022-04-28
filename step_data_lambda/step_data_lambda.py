@@ -2,8 +2,6 @@ import decimal
 import boto3
 import json
 import time
-import dateutil.tz
-from datetime import datetime
 from boto3.dynamodb.conditions import Key
 
 
@@ -35,9 +33,9 @@ def save_step_object(step_obj):
     try:
         step_obj = json.loads(json.dumps(step_obj), parse_float=decimal.Decimal)
         table = boto3.resource('dynamodb').Table('step_metrics')
-        date_num = int(datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime("%Y%m%d"))
-        ts = time.time()
-        table.put_item(Item={'date': str(date_num), 'timestamp': str(ts), 'step_metrics': step_obj})
+        for item in step_obj:
+            ts = time.time()
+            table.put_item(Item={'date': str(item), 'timestamp': str(ts), 'step_metrics': step_obj[item]})
         return True
     except Exception as e:
         print(e)

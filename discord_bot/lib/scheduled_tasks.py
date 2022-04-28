@@ -33,10 +33,12 @@ def save_step_snapshot():
                                                    SECRETS_OBJECT['STEPS_PASSWORD'],
                                                    full_metrics=True)
     print("metrics received")
+    date_num = datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime("%Y%m%d")
+    data = {date_num: step_dict['metrics']}
     if step_dict['success']:
         response = support_methods.call_bot_api_post_method(
             API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
-                "step_metrics": step_dict['metrics']
+                "step_metrics": data
             })
         if response.status_code == 200:
             print('Metrics saved')
