@@ -5,6 +5,9 @@ import time
 from boto3.dynamodb.conditions import Key
 
 
+STEPS_TABLE = boto3.resource('dynamodb').Table('step_metrics')
+
+
 class DecimalEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, decimal.Decimal):
@@ -13,29 +16,39 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 def query_table(key=None, value=None):
-    step_table = boto3.resource('dynamodb').Table('step_metrics')
     if key is not None and value is not None:
         filtering_exp = Key(key).eq(value)
-        return step_table.query(KeyConditionExpression=filtering_exp)
+        return STEPS_TABLE.query(KeyConditionExpression=filtering_exp)
     raise ValueError('Parameters missing or invalid')
 
 
-def read_step_metrics(date_num):
+def read_step_metrics_for_day(date_num, full_history=False):
     resp = query_table(
         key='date',
         value=date_num
     )
-    data = resp.get('Items')
-    return sorted(data, key=lambda d: d['timestamp'], reverse=True)[0]
+    data = sorted(resp.get('Items'), key=lambda d: d['timestamp'], reverse=True)
+    if full_history:
+        return data
+    else:
+        return data[0]
+
+
+def read_all_step_metrics():
+    response = STEPS_TABLE.scan()
+    data = response['Items']
+    while response.get('LastEvaluatedKey'):
+        response = STEPS_TABLE.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+        data.extend(response['Items'])
+    return sorted(data, key=lambda d: d['date'], reverse=True)
 
 
 def save_step_object(step_obj):
     try:
         step_obj = json.loads(json.dumps(step_obj), parse_float=decimal.Decimal)
-        table = boto3.resource('dynamodb').Table('step_metrics')
         for item in step_obj:
             ts = time.time()
-            table.put_item(Item={'date': str(item), 'timestamp': str(ts), 'step_metrics': step_obj[item]})
+            STEPS_TABLE.put_item(Item={'date': str(item), 'timestamp': str(ts), 'step_metrics': step_obj[item]})
         return True
     except Exception as e:
         print(e)
@@ -61,8 +74,16 @@ def lambda_handler(event, context):
             return response
         elif http_method == 'GET':
             try:
-                date_num = event['queryStringParameters']['date_num']
-                response = create_response(200, json.dumps(read_step_metrics(date_num), cls=DecimalEncoder))
+                query_string = event['queryStringParameters']
+                if query_string and 'date_num' in query_string:
+                    date_num = event['queryStringParameters']['date_num']
+                    if 'depth' in query_string:
+                        return_data = read_step_metrics_for_day(date_num, full_history=True)
+                    else:
+                        return_data = read_step_metrics_for_day(date_num)
+                    response = create_response(200, json.dumps(return_data, cls=DecimalEncoder))
+                else:
+                    response = create_response(200, json.dumps(read_all_step_metrics(), cls=DecimalEncoder))
             except Exception as e:
                 print(e)
                 response = create_response(502)
