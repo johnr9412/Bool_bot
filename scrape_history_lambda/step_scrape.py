@@ -1,4 +1,3 @@
-import imp
 import time
 import json
 import boto3

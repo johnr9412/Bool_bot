@@ -32,10 +32,10 @@ def save_step_snapshot():
                                                    SECRETS_OBJECT['STEPS_USERNAME'],
                                                    SECRETS_OBJECT['STEPS_PASSWORD'],
                                                    full_metrics=True)
-    print("metrics received")
-    date_num = datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime("%Y%m%d")
-    data = {date_num: step_dict['metrics']}
     if step_dict['success']:
+        print("metrics received")
+        date_num = datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime("%Y%m%d")
+        data = {date_num: step_dict['metrics']}
         response = support_methods.call_bot_api_post_method(
             API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
                 "step_metrics": data
@@ -44,6 +44,8 @@ def save_step_snapshot():
             print('Metrics saved')
         else:
             print("borked " + str(response.status_code))
+    else:
+        print('getting metrics broke')
 
 
 #THIS METHOD IS ACTUAL AIDS BUT IT'S JUST HOW IT BE IDK

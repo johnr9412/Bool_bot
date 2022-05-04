@@ -7,6 +7,10 @@ from selenium.webdriver.common.by import By
 from tempfile import mkdtemp
 
 
+dynamodb = boto3.resource('dynamodb', region_name="us-east-2")
+USERNAMES = dynamodb.Table('stridekick_crosswalk').scan()['Items']
+
+
 def start_driver(headless):
     if headless:
         options = webdriver.ChromeOptions()
@@ -49,11 +53,11 @@ def navigate_to_friends(driver):
 
 
 def get_users_name(username):
-    dynamodb = boto3.resource('dynamodb', region_name="us-east-2")
-    username_obj = dynamodb.Table('stridekick_crosswalk').get_item(Key={"stridekick_name": username})
     try:
-        return username_obj['Item']['person_name']
-    except KeyError:
+        user = next(filter(lambda x: x['stridekick_name'] == username, USERNAMES))
+        return user['person_name']
+    except Exception as e:
+        print(e)
         return username
 
 
