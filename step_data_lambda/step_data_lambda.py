@@ -46,9 +46,11 @@ def read_all_step_metrics():
 def save_step_object(step_obj):
     try:
         step_obj = json.loads(json.dumps(step_obj), parse_float=decimal.Decimal)
-        for item in step_obj:
-            ts = time.time()
-            STEPS_TABLE.put_item(Item={'date': str(item), 'timestamp': str(ts), 'step_metrics': step_obj[item]})
+        with STEPS_TABLE.batch_writer() as writer:
+            for item in step_obj:
+                writer.put_item(
+                    Item={'date': str(item), 'timestamp': str(time.time()), 'step_metrics': step_obj[item]}
+                )
         return True
     except Exception as e:
         print(e)
