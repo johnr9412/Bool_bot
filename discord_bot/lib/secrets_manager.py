@@ -11,9 +11,19 @@ def get_secrets_obj():
     # required check to start the vault connection
     vault_client.is_authenticated()
 
+    try:
+        if os.environ['ENVIRONMENT'] == 'dev':
+            bot_token = vault_client.secrets.kv.read_secret_version(
+                path='test_bot_token')['data']['data']['key']
+        else:
+            raise Exception
+    except Exception as e:
+        print(e)
+        bot_token = vault_client.secrets.kv.read_secret_version(
+            path='bool_bot_token')['data']['data']['key']
+
     return {
-        "DISCORD_TOKEN": vault_client.secrets.kv.read_secret_version(
-            path='discord_token')['data']['data']['key'],
+        "DISCORD_TOKEN": bot_token,
         "SPOTIFY_TOKEN1": vault_client.secrets.kv.read_secret_version(
             path='spotify_token_1')['data']['data']['key'],
         "SPOTIFY_TOKEN2": vault_client.secrets.kv.read_secret_version(
