@@ -1,6 +1,5 @@
 import time
 import json
-import boto3
 import psutil
 import requests
 import os
@@ -8,10 +7,6 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from tempfile import mkdtemp
-
-
-dynamodb = boto3.resource('dynamodb', region_name="us-east-2")
-USERNAMES = dynamodb.Table('stridekick_crosswalk').scan()['Items']
 
 
 def start_driver(headless):
@@ -64,15 +59,6 @@ def get_date_num(driver):
     return date_object.strftime("%Y%m%d")
 
 
-def get_users_name(username):
-    try:
-        user = next(filter(lambda x: x['stridekick_name'] == username, USERNAMES))
-        return user['person_name']
-    except Exception as e:
-        print(e)
-        return username
-
-
 def get_step_data(driver):
     step_icon = driver.find_elements(By.XPATH,
                 '//*[@id="root"]/div[2]/div/div[2]/div/div/div[3]/div/div/div/div[2]/div[2]/div/div[1]/i')[0]
@@ -83,7 +69,6 @@ def get_step_data(driver):
                            tbody.find_elements(By.XPATH, "*")):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        user_name = get_users_name(user_name)
         step_data[user_name] = int(div_objs[1].text.replace(",", ""))
     return step_data
 
@@ -98,7 +83,6 @@ def get_minute_data(driver):
                            tbody.find_elements(By.XPATH, "*")):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        user_name = get_users_name(user_name)
         minute_stats[user_name] = int(div_objs[1].text.replace(",", ""))
     return minute_stats
 
@@ -113,7 +97,6 @@ def get_distance_data(driver):
                            tbody.find_elements(By.XPATH, "*")):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        user_name = get_users_name(user_name)
         distance_stats[user_name] = float(div_objs[1].text.replace(",", ""))
     return distance_stats
 
@@ -128,6 +111,20 @@ def kill_chrome(driver):
     driver.quit()
 
 
+def scrape_metrics_for_day(driver):
+    fitness_metrics = {}
+    step_metrics = get_step_data(driver)
+    minute_metrics = get_minute_data(driver)
+    distance_metrics = get_distance_data(driver)
+    for username in step_metrics:
+        fitness_metrics[username] = {
+            "steps": step_metrics[username],
+            "minutes": minute_metrics[username],
+            "distance": distance_metrics[username]
+        }
+    return fitness_metrics
+
+
 def scrape_fitness_metrics(usrnm, pswd, days_of_history):
     driver = start_driver(headless=True)
     login_to_site(driver, 'https://link.stridekick.com/', usrnm, pswd)
@@ -135,30 +132,19 @@ def scrape_fitness_metrics(usrnm, pswd, days_of_history):
     navigate_to_friends(driver)
     time.sleep(1)
     return_value = {}
+    if days_of_history == 0:
+        date_num = get_date_num(driver)
+        return_value[date_num] = scrape_metrics_for_day(driver)
     for i in range(days_of_history):
         arrow = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[2]/div/div/div[1]/i')[0]
         arrow.click()
-        fitness_metrics = {}
         date_num = get_date_num(driver)
-        step_metrics = get_step_data(driver)
-        minute_metrics = get_minute_data(driver)
-        distance_metrics = get_distance_data(driver)
-        for username in step_metrics:
-            fitness_metrics[username] = {
-                "steps": step_metrics[username],
-                "minutes": minute_metrics[username],
-                "distance": distance_metrics[username]
-            }
-        return_value[date_num] = fitness_metrics
+        return_value[date_num] = scrape_metrics_for_day(driver)
     kill_chrome(driver)
     return return_value
 
 
 def call_save_metrics_api(step_metrics):
-    api_key = os.environ['API_KEY']
-    print(api_key)
-    api_url = os.environ['API_URL']
-    print(api_url)
     headers = {'x-api-key': os.environ['API_KEY']}
     return requests.post(os.environ['API_URL'], data=json.dumps({"step_metrics": step_metrics}), headers=headers)
 

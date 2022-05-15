@@ -73,36 +73,6 @@ def get_step_data(driver):
     return step_data
 
 
-def get_minute_data(driver):
-    minute_icon = driver.find_elements(By.XPATH,
-                '//*[@id="root"]/div[2]/div/div[2]/div/div/div[3]/div/div/div/div[2]/div[2]/div/div[2]/i')[0]
-    minute_icon.click()
-    minute_stats = {}
-    tbody = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[4]/div')[0]
-    for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-cpUXGm iffqJB',
-                           tbody.find_elements(By.XPATH, "*")):
-        div_objs = user_div.find_elements(By.XPATH, "*")
-        user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        user_name = get_users_name(user_name)
-        minute_stats[user_name] = int(div_objs[1].text.replace(",", ""))
-    return minute_stats
-
-
-def get_distance_data(driver):
-    distance_icon = driver.find_elements(By.XPATH,
-                '//*[@id="root"]/div[2]/div/div[2]/div/div/div[3]/div/div/div/div[2]/div[2]/div/div[3]/i')[0]
-    distance_icon.click()
-    distance_stats = {}
-    tbody = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[4]/div')[0]
-    for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-cpUXGm iffqJB',
-                           tbody.find_elements(By.XPATH, "*")):
-        div_objs = user_div.find_elements(By.XPATH, "*")
-        user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        user_name = get_users_name(user_name)
-        distance_stats[user_name] = float(div_objs[1].text.replace(",", ""))
-    return distance_stats
-
-
 def kill_chrome(driver):
     chrome_procname = "chrome" # to clean up zombie Chrome browser
     driver_procname = "chromedriver" # to clean up zombie ChromeDriver
@@ -113,42 +83,23 @@ def kill_chrome(driver):
     driver.quit()
 
 
-def scrape_fitness_metrics(usrnm, pswd, full_metrics=False):
+def scrape_fitness_metrics(usrnm, pswd):
     driver = start_driver(headless=True)
     login_to_site(driver, 'https://link.stridekick.com/', usrnm, pswd)
     time.sleep(1)
     navigate_to_friends(driver)
     time.sleep(1)
-    fitness_metrics = {}
     step_metrics = get_step_data(driver)
-    if full_metrics:
-        minute_metrics = get_minute_data(driver)
-        distance_metrics = get_distance_data(driver)
-        for username in step_metrics:
-            fitness_metrics[username] = {
-                "steps": step_metrics[username],
-                "minutes": minute_metrics[username],
-                "distance": distance_metrics[username]
-            }
-        kill_chrome(driver)
-        return fitness_metrics
-    else:
-        kill_chrome(driver)
-        return step_metrics
+    kill_chrome(driver)
+    return step_metrics
 
 
 def lambda_handler(event, context=None):
     try:
         body = json.loads(event['body'])
-        if body['data_depth'] == 'full':
-            print('full')
-            return_data = scrape_fitness_metrics(body['username'], body['password'], full_metrics=True)
-        else:
-            print('steps')
-            return_data = scrape_fitness_metrics(body['username'], body['password'])
         return {
             'statusCode': 200,
-            'body': json.dumps(return_data)
+            'body': json.dumps(scrape_fitness_metrics(body['username'], body['password']))
         }
     except Exception as e:
         print(e)

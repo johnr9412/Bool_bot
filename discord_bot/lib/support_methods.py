@@ -63,13 +63,12 @@ def create_full_metrics_embed(caption, date_value, steps_dict):
     return embed
 
 
-def get_webscrape_data(step_url, step_key, username, password, full_metrics=False):
+def get_webscrape_data(step_url, step_key, username, password):
     try:
         response = call_bot_api_post_method(
             step_url, step_key, {
                 "username": username,
-                "password": password,
-                "data_depth": 'full' if full_metrics else 'steps'
+                "password": password
             })
         if response.status_code == 200:
             return {

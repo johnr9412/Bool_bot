@@ -17,35 +17,8 @@ client = discord.Client()
 
 @client.event
 async def on_ready():
-    hour = datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime('%H')
-    if hour == '23':
-        save_step_snapshot()
-    elif hour == '07':
-        await send_prev_day_summary()
+    await send_prev_day_summary()
     await client.close()
-
-
-def save_step_snapshot():
-    print('getting metrics')
-    step_dict = support_methods.get_webscrape_data(API_URL_OBJECT['STEP_SCRAPE_URL'],
-                                                   SECRETS_OBJECT['STEP_SCRAPE_KEY'],
-                                                   SECRETS_OBJECT['STEPS_USERNAME'],
-                                                   SECRETS_OBJECT['STEPS_PASSWORD'],
-                                                   full_metrics=True)
-    if step_dict['success']:
-        print("metrics received")
-        date_num = datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime("%Y%m%d")
-        data = {date_num: step_dict['metrics']}
-        response = support_methods.call_bot_api_post_method(
-            API_URL_OBJECT['STEP_API_URL'], SECRETS_OBJECT['STEP_API_KEY'], {
-                "step_metrics": data
-            })
-        if response.status_code == 200:
-            print('Metrics saved')
-        else:
-            print("borked " + str(response.status_code))
-    else:
-        print('getting metrics broke')
 
 
 #THIS METHOD IS ACTUAL AIDS BUT IT'S JUST HOW IT BE IDK

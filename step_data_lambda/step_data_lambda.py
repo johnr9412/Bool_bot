@@ -5,7 +5,9 @@ import time
 from boto3.dynamodb.conditions import Key
 
 
-STEPS_TABLE = boto3.resource('dynamodb').Table('step_metrics')
+dynamodb = boto3.resource('dynamodb')
+STEPS_TABLE = dynamodb.Table('step_metrics')
+USERNAMES = dynamodb.Table('stridekick_crosswalk').scan()['Items']
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -22,12 +24,41 @@ def query_table(key=None, value=None):
     raise ValueError('Parameters missing or invalid')
 
 
+def get_users_name(username):
+    try:
+        user = next(filter(lambda x: x['stridekick_name'] == username, USERNAMES))
+        return user['person_name']
+    except Exception as e:
+        print(e)
+        return username
+
+
+def format_data(data, multi_day=False):
+    for i in range(len(data)):
+        if isinstance(data, list):
+            old_metrics = data[i]['step_metrics'].copy()
+            data[i]['step_metrics'] = {}
+        else:
+            old_metrics = data['step_metrics'].copy()
+            data['step_metrics'] = {}
+        for username in old_metrics:
+            person_name = get_users_name(username)
+            if isinstance(data, list):
+                data[i]['step_metrics'][person_name] = old_metrics[username]
+            else:
+                data['step_metrics'][person_name] = old_metrics[username]
+    if multi_day:
+        return sorted(data, key=lambda d: d['date'], reverse=True)
+    else:
+        return sorted(data, key=lambda d: d['timestamp'], reverse=True)
+
+
 def read_step_metrics_for_day(date_num, full_history=False):
     resp = query_table(
         key='date',
         value=date_num
     )
-    data = sorted(resp.get('Items'), key=lambda d: d['timestamp'], reverse=True)
+    data = format_data(resp.get('Items'), multi_day=False)
     if full_history:
         return data
     else:
@@ -40,7 +71,7 @@ def read_all_step_metrics():
     while response.get('LastEvaluatedKey'):
         response = STEPS_TABLE.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
         data.extend(response['Items'])
-    return sorted(data, key=lambda d: d['date'], reverse=True)
+    return format_data(data, multi_day=True)
 
 
 def save_step_object(step_obj):
