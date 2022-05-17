@@ -42,6 +42,8 @@ async def on_message(message):
         elif 'get steps' in message_content:
             await message.channel.send('Fetching steps... this may take some time')
             await get_steps(message)
+        elif 'get beans' in message_content:
+            await message.channel.send('https://tenor.com/view/crazy-eyes-kid-pork-and-beans-beans-gif-19099849')
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
         await get_schedule(message)
 
