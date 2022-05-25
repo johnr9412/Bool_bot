@@ -51,7 +51,7 @@ async def send_prev_day_summary():
             "Yesterday's Step Summary",
             date_value,
             step_metrics)
-        await client.get_channel(SECRETS_OBJECT['HEALTH_CHANNEL_ID']).send(embed=embed)
+        await client.get_channel(SECRETS_OBJECT['TEST_CHANNEL_ID']).send(embed=embed)
     else:
         print('borked ' + str(response.status_code))
 

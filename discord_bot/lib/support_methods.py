@@ -54,12 +54,13 @@ def create_full_metrics_embed(caption, date_value, steps_dict):
     embed.add_field(name='Date Stamp', value=date_value, inline=False)
     count = 1
     for user in steps_dict:
-        title_text = str(count) + '. ' + user
-        user_metrics = 'Steps: ' + "{:,}".format(steps_dict[user]['steps']) + '\n' \
-                       + 'Miles: ' + steps_dict[user]['distance'] + '\n' \
-                       + 'Minutes: ' + steps_dict[user]['minutes']
-        embed.add_field(name=title_text, value=user_metrics)
-        count += 1
+        if (steps_dict[user]['steps'] + steps_dict[user]['steps'] + steps_dict[user]['steps']) > 0:
+            title_text = str(count) + '. ' + user
+            user_metrics = 'Steps: ' + "{:,}".format(steps_dict[user]['steps']) + '\n' \
+                           + 'Miles: ' + steps_dict[user]['distance'] + '\n' \
+                           + 'Minutes: ' + steps_dict[user]['minutes']
+            embed.add_field(name=title_text, value=user_metrics)
+            count += 1
     return embed
 
 
