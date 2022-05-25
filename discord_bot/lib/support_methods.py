@@ -45,7 +45,7 @@ def create_step_embed(caption, date_value, steps_dict):
     for item in steps_dict:
         message_text += (item + ': ' + "{:,}".format(steps_dict[item]) + '\n')
     embed.add_field(name='Step Counts', value=message_text, inline=False)
-    embed.add_field(name='Something motivational', value='Today is the day that yall will kill it and here is more shit', inline=False)
+    embed.add_field(name='Reminder', value='Sync your steps or the devil will get you', inline=False)
     return embed
 
 
