@@ -64,7 +64,7 @@ def get_users_name(username):
 def get_step_data(driver):
     step_data = {}
     tbody = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[4]/div')[0]
-    for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-cpUXGm iffqJB',
+    for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-SjVdP dSgNda',
                            tbody.find_elements(By.XPATH, "*")):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
