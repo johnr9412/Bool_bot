@@ -44,6 +44,11 @@ async def on_message(message):
             await get_steps(message)
         elif 'get beans' in message_content:
             await message.channel.send('https://tenor.com/view/crazy-eyes-kid-pork-and-beans-beans-gif-19099849')
+        elif 'countdown' in message_content:
+            if 'add' in message_content:
+                await add_countdown(message)
+            elif 'get' in message_content:
+                await get_countdown(message)
     elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
         await get_schedule(message)
 
@@ -157,6 +162,35 @@ async def get_schedule(message):
             await message.channel.send(embed=support_methods.create_schedule_embed(item, day))
     else:
         await message.channel.send('Something went wrong')
+
+
+async def get_countdown(message):
+    try:
+        event_name = message.content.split("countdown ")[1]
+        response = support_methods.call_bot_api_get_method(
+            API_URL_OBJECT['COUNTDOWN_API_URL'], SECRETS_OBJECT['COUNTDOWN_API_KEY'], {
+                "event_name": event_name
+            })
+        if response.status_code == 200:
+            await message.channel.send(json.loads(response.content))
+    except Exception:
+        await message.channel.send('No countdown found')
+
+
+async def add_countdown(message):
+    try:
+        event_details = message.content.split("countdown ")[1]
+        event_name = event_details.split(" ")[0]
+        event_date = event_details.split(" ")[1]
+        response = support_methods.call_bot_api_post_method(
+            API_URL_OBJECT['COUNTDOWN_API_URL'], SECRETS_OBJECT['COUNTDOWN_API_KEY'], {
+                "event_name": event_name,
+                "event_date": event_date
+            })
+        if response.status_code == 200:
+            await message.channel.send(json.loads(response.content))
+    except Exception:
+        await message.channel.send('No countdown found')
 
 
 #start the bot

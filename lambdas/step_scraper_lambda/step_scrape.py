@@ -74,8 +74,10 @@ def get_step_data(driver):
 
 
 def kill_chrome(driver):
-    chrome_procname = "chrome" # to clean up zombie Chrome browser
-    driver_procname = "chromedriver" # to clean up zombie ChromeDriver
+    # to clean up zombie Chrome browser
+    chrome_procname = "chrome"
+    # to clean up zombie ChromeDriver
+    driver_procname = "chromedriver"
     for proc in psutil.process_iter():
         # check whether the process name matches
         if proc.name() == chrome_procname or proc.name() == driver_procname:
@@ -94,7 +96,7 @@ def scrape_fitness_metrics(usrnm, pswd):
     return step_metrics
 
 
-def lambda_handler(event, context=None):
+def lambda_handler(event):
     try:
         body = json.loads(event['body'])
         return {

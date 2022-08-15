@@ -44,6 +44,8 @@ def get_secrets_obj():
             path='step_scrape_key')['data']['data']['key'],
         "STEP_API_KEY": vault_client.secrets.kv.read_secret_version(
             path='step_api_key')['data']['data']['key'],
+        "COUNTDOWN_API_KEY": vault_client.secrets.kv.read_secret_version(
+            path='countdown_api_key')['data']['data']['key'],
         "STEPS_USERNAME": vault_client.secrets.kv.read_secret_version(
             path='steps_username')['data']['data']['key'],
         "STEPS_PASSWORD": vault_client.secrets.kv.read_secret_version(
