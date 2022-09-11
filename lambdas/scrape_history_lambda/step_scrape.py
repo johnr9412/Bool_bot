@@ -69,7 +69,7 @@ def get_step_data(driver):
                            tbody.find_elements(By.XPATH, "*")):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        step_data[user_name] = int(div_objs[1].text.replace(",", ""))
+        step_data[user_name] = int(div_objs[1].get_attribute('innerHTML').replace(",", ""))
     return step_data
 
 
@@ -83,7 +83,7 @@ def get_minute_data(driver):
                            tbody.find_elements(By.XPATH, "*")):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        minute_stats[user_name] = int(div_objs[1].text.replace(",", ""))
+        minute_stats[user_name] = int(div_objs[1].get_attribute('innerHTML').replace(",", ""))
     return minute_stats
 
 
@@ -97,7 +97,7 @@ def get_distance_data(driver):
                            tbody.find_elements(By.XPATH, "*")):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        distance_stats[user_name] = float(div_objs[1].text.replace(",", ""))
+        distance_stats[user_name] = float(div_objs[1].get_attribute('innerHTML').replace(",", ""))
     return distance_stats
 
 

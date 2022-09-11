@@ -69,7 +69,7 @@ def get_step_data(driver):
         div_objs = user_div.find_elements(By.XPATH, "*")
         user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
         user_name = get_users_name(user_name)
-        step_data[user_name] = int(div_objs[1].text.replace(",", ""))
+        step_data[user_name] = int(div_objs[1].get_attribute('innerHTML').replace(",", ""))
     return step_data
 
 
@@ -96,7 +96,7 @@ def scrape_fitness_metrics(usrnm, pswd):
     return step_metrics
 
 
-def lambda_handler(event):
+def lambda_handler(event, context=None):
     try:
         body = json.loads(event['body'])
         return {
