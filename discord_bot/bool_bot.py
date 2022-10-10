@@ -44,6 +44,8 @@ async def on_message(message):
             await get_steps(message)
         elif 'get beans' in message_content:
             await message.channel.send('https://tenor.com/view/crazy-eyes-kid-pork-and-beans-beans-gif-19099849')
+        elif 'air couch' in message_content:
+            await message.channel.send('https://i.imgur.com/JE4GhE4.jpg')
         elif 'countdown' in message_content:
             if 'add' in message_content:
                 await add_countdown(message)
@@ -169,7 +171,7 @@ async def get_countdown(message):
         event_name = message.content.split("countdown ")[1]
         response = support_methods.call_bot_api_get_method(
             API_URL_OBJECT['COUNTDOWN_API_URL'], SECRETS_OBJECT['COUNTDOWN_API_KEY'], {
-                "event_name": event_name
+                "event_name": event_name.lower()
             })
         if response.status_code == 200:
             await message.channel.send(json.loads(response.content))
