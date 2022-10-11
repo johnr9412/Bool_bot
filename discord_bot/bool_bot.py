@@ -51,8 +51,8 @@ async def on_message(message):
                 await add_countdown(message)
             elif 'get' in message_content:
                 await get_countdown(message)
-    elif 'https://clashfinder.com/m/' in message.content or 'https://clashfinder.com/s/' in message.content:
-        await get_schedule(message)
+        elif 'get schedule' in message.content:
+            await get_schedule(message)
 
 
 #async functions
