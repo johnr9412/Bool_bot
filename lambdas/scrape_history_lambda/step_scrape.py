@@ -1,146 +1,63 @@
-import time
 import json
-import psutil
 import requests
 import os
-from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from tempfile import mkdtemp
+import dateutil.tz
+from datetime import datetime, timedelta
+from warrant.aws_srp import AWSSRP
 
 
-def start_driver(headless):
-    if headless:
-        options = webdriver.ChromeOptions()
-        options.binary_location = '/opt/chrome/chrome'
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1280x1696")
-        options.add_argument("--single-process")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-dev-tools")
-        options.add_argument("--no-zygote")
-        options.add_argument(f"--user-data-dir={mkdtemp()}")
-        options.add_argument(f"--data-path={mkdtemp()}")
-        options.add_argument(f"--disk-cache-dir={mkdtemp()}")
-        options.add_argument("--remote-debugging-port=9222")
-        return webdriver.Chrome("/opt/chromedriver",
-                                options=options)
-    else:
-        return webdriver.Chrome()
+def warrant_auth(username, password):
+    pool_id = os.environ['POOL_ID']
+    client_id = os.environ['CLIENT_ID']
+    aws = AWSSRP(username=username, password=password, pool_id=pool_id,
+                 client_id=client_id, pool_region='us-east-1')
+    tokens = aws.authenticate_user()
+    access_token = tokens['AuthenticationResult']['AccessToken']
+    return access_token
 
 
-def login_to_site(driver, address, usrnm, pswd):
-    driver.get(address)
-    login_element = next(filter(lambda x: x.text == 'Log in', driver.find_elements(By.TAG_NAME, 'button')))
-    login_element.click()
-    fields = driver.find_elements(By.TAG_NAME, 'input')
-    for el in fields:
-        if el.get_attribute("name") == 'email':
-            el.send_keys(usrnm)
-        elif el.get_attribute("name") == 'password':
-            el.send_keys(pswd)
-    login_element = next(filter(lambda x: x.text == 'Login', driver.find_elements(By.TAG_NAME, 'button')))
-    login_element.click()
-
-
-def navigate_to_friends(driver):
-    friends_url = driver.current_url + 'friends'
-    driver.get(friends_url)
-
-
-def get_date_num(driver):
-    date_web_object = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[2]/div/div/div[2]/div')[0]
-    date_string = date_web_object.text.replace(',', '')
-    if 'Today' in date_string:
-        date_string = date_string.replace('Today ', '')
-    date_object = datetime.strptime(date_string, '%b %d %Y')
-    return date_object.strftime("%Y%m%d")
-
-
-def get_step_data(driver):
-    step_icon = driver.find_elements(By.XPATH,
-                '//*[@id="root"]/div[2]/div/div[2]/div/div/div[3]/div/div/div/div[2]/div[2]/div/div[1]/i')[0]
-    step_icon.click()
-    step_data = {}
-    tbody = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[4]/div')[0]
-    for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-SjVdP dSgNda',
-                           tbody.find_elements(By.XPATH, "*")):
-        div_objs = user_div.find_elements(By.XPATH, "*")
-        user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        step_data[user_name] = int(div_objs[1].get_attribute('innerHTML').replace(",", ""))
-    return step_data
-
-
-def get_minute_data(driver):
-    minute_icon = driver.find_elements(By.XPATH,
-                '//*[@id="root"]/div[2]/div/div[2]/div/div/div[3]/div/div/div/div[2]/div[2]/div/div[2]/i')[0]
-    minute_icon.click()
-    minute_stats = {}
-    tbody = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[4]/div')[0]
-    for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-SjVdP dSgNda',
-                           tbody.find_elements(By.XPATH, "*")):
-        div_objs = user_div.find_elements(By.XPATH, "*")
-        user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        minute_stats[user_name] = int(div_objs[1].get_attribute('innerHTML').replace(",", ""))
-    return minute_stats
-
-
-def get_distance_data(driver):
-    distance_icon = driver.find_elements(By.XPATH,
-                '//*[@id="root"]/div[2]/div/div[2]/div/div/div[3]/div/div/div/div[2]/div[2]/div/div[3]/i')[0]
-    distance_icon.click()
-    distance_stats = {}
-    tbody = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[4]/div')[0]
-    for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-SjVdP dSgNda',
-                           tbody.find_elements(By.XPATH, "*")):
-        div_objs = user_div.find_elements(By.XPATH, "*")
-        user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        distance_stats[user_name] = float(div_objs[1].get_attribute('innerHTML').replace(",", ""))
-    return distance_stats
-
-
-def kill_chrome(driver):
-    chrome_procname = "chrome" # to clean up zombie Chrome browser
-    driver_procname = "chromedriver" # to clean up zombie ChromeDriver
-    for proc in psutil.process_iter():
-        # check whether the process name matches
-        if proc.name() == chrome_procname or proc.name() == driver_procname:
-            proc.kill()
-    driver.quit()
-
-
-def scrape_metrics_for_day(driver):
-    fitness_metrics = {}
-    step_metrics = get_step_data(driver)
-    minute_metrics = get_minute_data(driver)
-    distance_metrics = get_distance_data(driver)
-    for username in step_metrics:
-        fitness_metrics[username] = {
-            "steps": step_metrics[username],
-            "minutes": minute_metrics[username],
-            "distance": distance_metrics[username]
+def format_step_data(step_data):
+    step_metrics = {}
+    for person in step_data:
+        step_metrics[person['username']] = {
+            "steps": person['activity']['steps'],
+            "minutes": person['activity']['minutes'],
+            "distance": person['activity']['distance']
         }
-    return fitness_metrics
+    return step_metrics
+
+
+def get_data_for_day(date_obj, token):
+    url = 'https://app.stridekick.com/graphql'
+    data = {
+        "operationName": "Friends",
+        "variables":
+        {
+            "date": date_obj.strftime('%Y-%m-%d'),
+            "search": ""
+        },
+        "query": "query Friends($date: String, $search: String) {\n  me {\n    id\n    avatar\n    unitType\n    username\n    activity(date: $date) {\n      id\n      distance\n      minutes\n      steps\n      __typename\n    }\n    friends(search: $search) {\n      hits\n      members {\n        id\n        avatar\n        firstName\n        lastName\n        username\n        activity(date: $date) {\n          id\n          distance\n          minutes\n          steps\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    memberFriends {\n      id\n      __typename\n    }\n    __typename\n  }\n}\n"
+    }
+    headers = {
+        'authorization': "Bearer " + token
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+    step_data = json.loads(response.content)['data']['me']['friends']['members']
+    return format_step_data(step_data)
 
 
 def scrape_fitness_metrics(usrnm, pswd, days_of_history):
-    driver = start_driver(headless=True)
-    login_to_site(driver, 'https://link.stridekick.com/', usrnm, pswd)
-    time.sleep(1)
-    navigate_to_friends(driver)
-    time.sleep(1)
     return_value = {}
+    current_date = datetime.now(tz=dateutil.tz.gettz('US/Eastern'))
+    token = warrant_auth(usrnm, pswd)
     if days_of_history == 0:
-        date_num = get_date_num(driver)
-        return_value[date_num] = scrape_metrics_for_day(driver)
+        date_num = current_date.strftime("%Y%m%d")
+        return_value[date_num] = get_data_for_day(current_date, token)
     for i in range(days_of_history):
-        arrow = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[2]/div/div/div[1]/i')[0]
-        arrow.click()
-        date_num = get_date_num(driver)
-        return_value[date_num] = scrape_metrics_for_day(driver)
-    kill_chrome(driver)
+        selected_date = current_date - timedelta(days=i+1)
+        date_num = selected_date.strftime("%Y%m%d")
+        return_value[date_num] = get_data_for_day(selected_date, token)
     return return_value
 
 

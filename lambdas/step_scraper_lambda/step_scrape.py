@@ -1,55 +1,14 @@
-import time
-import json
 import boto3
-import psutil
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from tempfile import mkdtemp
+import requests
+import dateutil.tz
+import os
+import json
+from datetime import datetime
+from warrant.aws_srp import AWSSRP
 
 
 dynamodb = boto3.resource('dynamodb', region_name="us-east-2")
 USERNAMES = dynamodb.Table('stridekick_crosswalk').scan()['Items']
-
-
-def start_driver(headless):
-    if headless:
-        options = webdriver.ChromeOptions()
-        options.binary_location = '/opt/chrome/chrome'
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1280x1696")
-        options.add_argument("--single-process")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-dev-tools")
-        options.add_argument("--no-zygote")
-        options.add_argument(f"--user-data-dir={mkdtemp()}")
-        options.add_argument(f"--data-path={mkdtemp()}")
-        options.add_argument(f"--disk-cache-dir={mkdtemp()}")
-        options.add_argument("--remote-debugging-port=9222")
-        return webdriver.Chrome("/opt/chromedriver",
-                                options=options)
-    else:
-        return webdriver.Chrome()
-
-
-def login_to_site(driver, address, usrnm, pswd):
-    driver.get(address)
-    login_element = next(filter(lambda x: x.text == 'Log in', driver.find_elements(By.TAG_NAME, 'button')))
-    login_element.click()
-    fields = driver.find_elements(By.TAG_NAME, 'input')
-    for el in fields:
-        if el.get_attribute("name") == 'email':
-            el.send_keys(usrnm)
-        elif el.get_attribute("name") == 'password':
-            el.send_keys(pswd)
-    login_element = next(filter(lambda x: x.text == 'Login', driver.find_elements(By.TAG_NAME, 'button')))
-    login_element.click()
-
-
-def navigate_to_friends(driver):
-    friends_url = driver.current_url + 'friends'
-    driver.get(friends_url)
 
 
 def get_users_name(username):
@@ -61,47 +20,102 @@ def get_users_name(username):
         return username
 
 
-def get_step_data(driver):
-    step_data = {}
-    tbody = driver.find_elements(By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div/div[4]/div[4]/div')[0]
-    for user_div in filter(lambda x: x.get_attribute("class") != 'row sc-SjVdP dSgNda',
-                           tbody.find_elements(By.XPATH, "*")):
-        div_objs = user_div.find_elements(By.XPATH, "*")
-        user_name = div_objs[0].find_elements(By.XPATH, "./div/nobr")[0].text
-        user_name = get_users_name(user_name)
-        step_data[user_name] = int(div_objs[1].get_attribute('innerHTML').replace(",", ""))
-    return step_data
+def warrant_auth(username, password):
+    pool_id = os.environ['POOL_ID']
+    client_id = os.environ['CLIENT_ID']
+    aws = AWSSRP(username=username, password=password, pool_id=pool_id,
+                 client_id=client_id, pool_region='us-east-1')
+    tokens = aws.authenticate_user()
+    access_token = tokens['AuthenticationResult']['AccessToken']
+    return access_token
 
 
-def kill_chrome(driver):
-    # to clean up zombie Chrome browser
-    chrome_procname = "chrome"
-    # to clean up zombie ChromeDriver
-    driver_procname = "chromedriver"
-    for proc in psutil.process_iter():
-        # check whether the process name matches
-        if proc.name() == chrome_procname or proc.name() == driver_procname:
-            proc.kill()
-    driver.quit()
+def format_step_data(step_data):
+    step_metrics = {}
+    for person in step_data:
+        step_metrics[get_users_name(person['username'])] = person['activity']['steps']
+    return {k: v for k, v in sorted(step_metrics.items(), key=lambda item: item[1], reverse=True)}
+
+
+def get_step_data(token):
+    url = 'https://app.stridekick.com/graphql'
+    data = {
+        "operationName": "Friends",
+        "variables":
+        {
+            "date": datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime('%Y-%m-%d'),
+            "search": ""
+        },
+        "query": "query Friends($date: String, $search: String) {\n  me {\n    id\n    avatar\n    unitType\n    username\n    activity(date: $date) {\n      id\n      distance\n      minutes\n      steps\n      __typename\n    }\n    friends(search: $search) {\n      hits\n      members {\n        id\n        avatar\n        firstName\n        lastName\n        username\n        activity(date: $date) {\n          id\n          distance\n          minutes\n          steps\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    memberFriends {\n      id\n      __typename\n    }\n    __typename\n  }\n}\n"
+    }
+    headers = {
+        'authorization': "Bearer " + token
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+    step_data = json.loads(response.content)['data']['me']['friends']['members']
+    return format_step_data(step_data)
 
 
 def scrape_fitness_metrics(usrnm, pswd):
-    driver = start_driver(headless=True)
-    login_to_site(driver, 'https://link.stridekick.com/', usrnm, pswd)
-    time.sleep(1)
-    navigate_to_friends(driver)
-    time.sleep(1)
-    step_metrics = get_step_data(driver)
-    kill_chrome(driver)
-    return step_metrics
+    token = warrant_auth(usrnm, pswd)
+    return get_step_data(token)
+
+
+def create_step_embed(steps_dict):
+    embed_fields = [{
+        "name": "Date",
+        "value": datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime('%m-%d-%Y'),
+        "inline": False
+    }]
+
+    message_text = ''
+    for item in steps_dict:
+        message_text += (item + ': ' + "{:,}".format(steps_dict[item]) + '\n')
+    embed_fields.append({
+        "name": "Step Counts",
+        "value": message_text,
+        "inline": False
+    })
+
+    embed_fields.append({
+        "name": "Reminder",
+        "value": "Sync your steps or the devil will get you",
+        "inline": False
+    })
+
+    embed = {
+        "title": "Steps",
+        "color": 3447003,
+        "fields": embed_fields
+    }
+    return embed
+
+
+def update_discord_message(app_id, token, step_embed):
+    url = "https://discord.com/api/v10/webhooks/" + str(app_id) + "/" + token + "/messages/@original"
+    data = {
+        "embeds": [step_embed]
+    }
+    if str(app_id) == '946504155512602644':
+        headers = {
+            "Authorization": "Bot " + os.environ['TEST_BOT_TOKEN']
+        }
+    else:
+        headers = {
+            "Authorization": "Bot " + os.environ['BOOL_BOT_TOKEN']
+        }
+    r = requests.patch(url, headers=headers, json=data)
+    print(r.status_code)
 
 
 def lambda_handler(event, context=None):
+    step_embed = create_step_embed(scrape_fitness_metrics(event['username'], event['password']))
+    update_discord_message(event['app_id'], event['token'], step_embed)
     try:
-        body = json.loads(event['body'])
         return {
             'statusCode': 200,
-            'body': json.dumps(scrape_fitness_metrics(body['username'], body['password']))
+            'body': "Success"
         }
     except Exception as e:
         print(e)
