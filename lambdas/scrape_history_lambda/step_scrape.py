@@ -28,23 +28,26 @@ def format_step_data(step_data):
 
 
 def get_data_for_day(date_obj, token):
-    url = 'https://app.stridekick.com/graphql'
-    data = {
-        "operationName": "Friends",
-        "variables":
-        {
-            "date": date_obj.strftime('%Y-%m-%d'),
-            "search": ""
-        },
-        "query": "query Friends($date: String, $search: String) {\n  me {\n    id\n    avatar\n    unitType\n    username\n    activity(date: $date) {\n      id\n      distance\n      minutes\n      steps\n      __typename\n    }\n    friends(search: $search) {\n      hits\n      members {\n        id\n        avatar\n        firstName\n        lastName\n        username\n        activity(date: $date) {\n          id\n          distance\n          minutes\n          steps\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    memberFriends {\n      id\n      __typename\n    }\n    __typename\n  }\n}\n"
-    }
-    headers = {
-        'authorization': "Bearer " + token
-    }
+    try:
+        url = 'https://app.stridekick.com/graphql'
+        data = {
+            "operationName": "Friends",
+            "variables":
+            {
+                "date": date_obj.strftime('%Y-%m-%d'),
+                "search": ""
+            },
+            "query": "query Friends($date: String, $search: String) {\n  me {\n    id\n    avatar\n    unitType\n    username\n    activity(date: $date) {\n      id\n      distance\n      minutes\n      steps\n      __typename\n    }\n    friends(search: $search) {\n      hits\n      members {\n        id\n        avatar\n        firstName\n        lastName\n        username\n        activity(date: $date) {\n          id\n          distance\n          minutes\n          steps\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    memberFriends {\n      id\n      __typename\n    }\n    __typename\n  }\n}\n"
+        }
+        headers = {
+            'authorization': "Bearer " + token
+        }
 
-    response = requests.post(url, json=data, headers=headers)
-    step_data = json.loads(response.content)['data']['me']['friends']['members']
-    return format_step_data(step_data)
+        response = requests.post(url, json=data, headers=headers)
+        step_data = json.loads(response.content)['data']['me']['friends']['members']
+        return format_step_data(step_data)
+    except:
+        return None
 
 
 def scrape_fitness_metrics(usrnm, pswd, days_of_history):
@@ -57,7 +60,12 @@ def scrape_fitness_metrics(usrnm, pswd, days_of_history):
     for i in range(days_of_history):
         selected_date = current_date - timedelta(days=i+1)
         date_num = selected_date.strftime("%Y%m%d")
-        return_value[date_num] = get_data_for_day(selected_date, token)
+        temp = get_data_for_day(selected_date, token)
+        if temp:
+            return_value[date_num] = temp
+            print("Recieved data for " + str(date_num))
+        else:
+            print("Error for " + str(date_num))
     return return_value
 
 
