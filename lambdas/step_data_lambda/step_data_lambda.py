@@ -122,6 +122,7 @@ def lambda_handler(event, context):
                 response = create_response(502)
             return response
         else:
+            print("Neither GET nor POST found")
             return create_response(500)
     except Exception as e:
         print(e)
