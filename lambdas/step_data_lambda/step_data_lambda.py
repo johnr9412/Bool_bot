@@ -95,15 +95,27 @@ def create_response(status_code, body=None):
     return response
 
 
+def create_snowflake_response(data):
+    response = {
+        "statusCode": 200,
+        "data": data
+    }
+    return response
+
+
 def lambda_handler(event, context):
     try:
         http_method = event['httpMethod']
         if http_method == 'POST':
-            body = json.loads(event['body'])
-            if save_step_object(body['step_metrics']):
-                response = create_response(200)
+            if "sf-external-function-name" in list(event['headers'].keys()):
+                response = json.dumps(create_snowflake_response(data=read_all_step_metrics()), cls=DecimalEncoder)
             else:
-                response = create_response(502)
+                body = json.loads(event['body'])
+                if save_step_object(body['step_metrics']):
+                    response = create_response(200)
+                else:
+                    print("POST 502")
+                    response = create_response(502)
             return response
         elif http_method == 'GET':
             try:
