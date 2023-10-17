@@ -71,7 +71,8 @@ def create_step_embed(steps_dict):
 
     message_text = ''
     for item in steps_dict:
-        message_text += (item + ': ' + "{:,}".format(steps_dict[item]) + '\n')
+        if steps_dict[item] != 0:
+            message_text += (item + ': ' + "{:,}".format(steps_dict[item]) + '\n')
     embed_fields.append({
         "name": "Step Counts",
         "value": message_text,
