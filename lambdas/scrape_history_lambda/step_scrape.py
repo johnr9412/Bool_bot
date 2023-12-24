@@ -46,7 +46,8 @@ def get_data_for_day(date_obj, token):
         response = requests.post(url, json=data, headers=headers)
         step_data = json.loads(response.content)['data']['me']['friends']['members']
         return format_step_data(step_data)
-    except:
+    except Exception as e:
+        print(e)
         return None
 
 
