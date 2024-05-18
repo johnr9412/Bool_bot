@@ -1,6 +1,8 @@
 import json
 import time
 import boto3
+import os
+import requests
 from datetime import datetime
 from boto3.dynamodb.conditions import Key
 
@@ -42,19 +44,29 @@ def write_event(event_name, str_event_date):
         return False
 
 
-def lambda_handler(event, context):
-    http_method = event['httpMethod']
-    if http_method == 'GET':
-        event_name = event['queryStringParameters']['event_name']
-        return_string = get_countdown(event_name)
-    elif http_method == 'POST':
-        body = json.loads(event['body'])
-        if write_event(body['event_name'], body['event_date']):
-            return_string = 'Added'
-        else:
-            return_string = 'Borked'
+def update_discord_message(app_id, token, return_string):
+    url = "https://discord.com/api/v10/webhooks/" + str(app_id) + "/" + token + "/messages/@original"
+    data = {
+        "content": return_string
+    }
+    if str(app_id) == '1241478241269579836':
+        headers = {
+            "Authorization": "Bot " + os.environ['TEST_BOT_TOKEN']
+        }
     else:
-        return_string = 'herp'
+        headers = {
+            "Authorization": "Bot " + os.environ['BOOL_BOT_TOKEN']
+        }
+    r = requests.patch(url, headers=headers, json=data)
+    print(r.status_code)
+
+
+def lambda_handler(event, context):
+    event_name = event['event_name']
+    app_id = event['app_id']
+    token = event['token']
+    return_string = get_countdown(event_name)
+    update_discord_message(app_id, token, return_string)
     return {
         'statusCode': 200,
         'body': return_string

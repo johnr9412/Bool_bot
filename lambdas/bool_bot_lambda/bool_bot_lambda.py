@@ -31,15 +31,14 @@ def ping_pong(body):
     return False
 
 
-def get_event_countdown(event_name):
-    data = {'action': 'GET', 'event_name': event_name}
+def get_event_countdown(event_name, app_id, token):
+    data = {'event_name': event_name, "app_id": app_id, "token": token}
     client = boto3.client('lambda')
-    response = client.invoke(
+    client.invoke(
         FunctionName='event_countdown_lambda',
-        InvocationType='RequestResponse',
+        InvocationType='Event',
         Payload=json.dumps(data)
     )
-    return json.loads(response.get('Payload').read())
 
 
 def get_steps(app_id, token):
@@ -67,17 +66,18 @@ def lambda_handler(event, context):
 
     name = body['data']['name']
     if name == 'countdown':
+        app_id = body['application_id']
+        token = body['token']
         event_name = body['data']['options'][0]['value']
-        response = get_event_countdown(event_name)
+        response = get_event_countdown(event_name, app_id, token)
         print(response)
         return {
-            "type": RESPONSE_TYPES['MESSAGE_WITH_SOURCE'],
+            "type": RESPONSE_TYPES['ACK_WITH_SOURCE'],
             "data": {
-                "content": response['body']
+                "content": ""
             }
         }
     elif name == 'get-steps':
-
         app_id = body['application_id']
         token = body['token']
         get_steps(app_id, token)
