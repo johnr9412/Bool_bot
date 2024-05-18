@@ -59,6 +59,11 @@ def get_steps(app_id, token):
 
 def lambda_handler(event, context):
     print(event)  # debug print
+    # verify the signature
+    try:
+        verify_signature(event)
+    except Exception as e:
+        raise Exception(f"[UNAUTHORIZED] Invalid request signature: {e}")
 
     # check if message is a ping
     body = event.get('body-json')
@@ -92,6 +97,9 @@ def lambda_handler(event, context):
     return {
         "type": RESPONSE_TYPES['MESSAGE_NO_SOURCE'],
         "data": {
-            "content": "BEEP BOOP"
+            "tts": False,
+            "content": "BEEP BOOP",
+            "embeds": [],
+            "allowed_mentions": []
         }
     }

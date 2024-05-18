@@ -98,7 +98,7 @@ def update_discord_message(app_id, token, step_embed):
     data = {
         "embeds": [step_embed]
     }
-    if str(app_id) == '946504155512602644':
+    if str(app_id) == '1241478241269579836':
         headers = {
             "Authorization": "Bot " + os.environ['TEST_BOT_TOKEN']
         }

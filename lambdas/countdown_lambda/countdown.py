@@ -57,5 +57,5 @@ def lambda_handler(event, context):
         return_string = 'herp'
     return {
         'statusCode': 200,
-        'body': json.dumps(return_string)
+        'body': return_string
     }
