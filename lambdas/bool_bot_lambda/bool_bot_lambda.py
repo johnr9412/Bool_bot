@@ -58,6 +58,7 @@ def get_steps(app_id, token):
 
 def lambda_handler(event, context):
     print(event)  # debug print
+    verify_signature(event)
 
     # check if message is a ping
     body = event.get('body-json')
