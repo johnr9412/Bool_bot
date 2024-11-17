@@ -56,7 +56,7 @@ def format_data(data, multi_day=False):
 def read_step_metrics_for_day(date_num, full_history=False):
     resp = query_table(
         key='date',
-        value=date_num
+        value=str(date_num)
     )
     data = format_data(resp.get('Items'), multi_day=False)
     if full_history:
