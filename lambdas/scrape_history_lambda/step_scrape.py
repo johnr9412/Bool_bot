@@ -29,10 +29,10 @@ def format_step_data(step_data):
 
 def get_data_for_day(date_obj, token):
     # try:
-    url = 'https://app.stridekick.com/graphql'
+    url = 'https://app.stridekickapp.com/graphql'
     data = {
         "operationName": "Friends",
-        "query": 'query Friends($date: String, $search: String) {\n  me {\n    id\n    avatar\n    unitType\n    username\n    activity(date: $date) {\n      id\n      distance\n      minutes\n      steps\n      __typename\n    }\n    friends(search: $search) {\n      hits\n      members {\n        id\n        avatar\n        firstName\n        lastName\n        username\n        activity(date: $date) {\n          id\n          distance\n          minutes\n          steps\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    memberFriends {\n      id\n      __typename\n    }\n    __typename\n  }\n}',
+        "query": "query Friends($date: String, $search: String) {\n  me {\n    id\n    avatar\n    unitType\n    username\n    activity(date: $date) {\n      id\n      distance\n      minutes\n      steps\n      __typename\n    }\n    friends(search: $search) {\n      hits\n      members {\n        id\n        avatar\n        firstName\n        lastName\n        username\n        activity(date: $date) {\n          id\n          distance\n          minutes\n          steps\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    memberFriends {\n      id\n      __typename\n    }\n    __typename\n  }\n}",
         "variables":
         {
             "date": date_obj.strftime('%Y-%m-%d'),
@@ -43,16 +43,16 @@ def get_data_for_day(date_obj, token):
     headers = {
         'authorization': "Bearer " + token,
         'Apollo-Require-Preflight': 'true',
-        'content-type': "application/json"
+        "Content-Type": "application/json"
     }
-
-    response = requests.post(url, json=data, headers=headers)
-    print(json.loads(response.content))
-    step_data = json.loads(response.content)['data']['me']['friends']['members']
-    return format_step_data(step_data)
-    # except Exception as e:
-    #     print(e)
-    #     return None
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        print(json.loads(response.content))
+        step_data = json.loads(response.content)['data']['me']['friends']['members']
+        return format_step_data(step_data)
+    except Exception as e:
+        print(e)
+        return None
 
 
 def scrape_fitness_metrics(usrnm, pswd, days_of_history):
@@ -82,9 +82,15 @@ def call_save_metrics_api(step_metrics):
 def lambda_handler(event, context=None):
     days = int(event['days'])
     step_metrics = scrape_fitness_metrics(event['username'], event['password'], days_of_history=days)
-    # response = call_save_metrics_api(step_metrics)
-    # if response.status_code == 200:
-    #     return "SUCCESS"
-    # else:
-    #     return "broken..."
+    response = call_save_metrics_api(step_metrics)
+    if response.status_code == 200:
+        return "SUCCESS"
+    else:
+        return "broken..."
 
+
+lambda_handler({
+  "days": "1",
+  "username": "johnr9412@hotmail.com",
+  "password": "Test321!"
+})
