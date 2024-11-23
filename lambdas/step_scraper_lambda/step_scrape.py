@@ -38,18 +38,21 @@ def format_step_data(step_data):
 
 
 def get_step_data(token):
-    url = 'https://app.stridekick.com/graphql'
+    url = 'https://app.stridekickapp.com/graphql'
     data = {
         "operationName": "Friends",
+        "query": "query Friends($date: String, $search: String) {\n  me {\n    id\n    avatar\n    unitType\n    username\n    activity(date: $date) {\n      id\n      distance\n      minutes\n      steps\n      __typename\n    }\n    friends(search: $search) {\n      hits\n      members {\n        id\n        avatar\n        firstName\n        lastName\n        username\n        activity(date: $date) {\n          id\n          distance\n          minutes\n          steps\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    memberFriends {\n      id\n      __typename\n    }\n    __typename\n  }\n}",
         "variables":
-        {
-            "date": datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime('%Y-%m-%d'),
-            "search": ""
-        },
-        "query": "query Friends($date: String, $search: String) {\n  me {\n    id\n    avatar\n    unitType\n    username\n    activity(date: $date) {\n      id\n      distance\n      minutes\n      steps\n      __typename\n    }\n    friends(search: $search) {\n      hits\n      members {\n        id\n        avatar\n        firstName\n        lastName\n        username\n        activity(date: $date) {\n          id\n          distance\n          minutes\n          steps\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    memberFriends {\n      id\n      __typename\n    }\n    __typename\n  }\n}\n"
+            {
+                "date": datetime.now(tz=dateutil.tz.gettz('US/Eastern')).strftime('%Y-%m-%d'),
+                "search": ""
+            }
     }
+
     headers = {
-        'authorization': "Bearer " + token
+        'authorization': "Bearer " + token,
+        'Apollo-Require-Preflight': 'true',
+        "Content-Type": "application/json"
     }
 
     response = requests.post(url, json=data, headers=headers)
