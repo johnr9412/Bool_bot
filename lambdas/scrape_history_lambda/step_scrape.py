@@ -88,9 +88,3 @@ def lambda_handler(event, context=None):
     else:
         return "broken..."
 
-
-lambda_handler({
-  "days": "1",
-  "username": "johnr9412@hotmail.com",
-  "password": "Test321!"
-})
